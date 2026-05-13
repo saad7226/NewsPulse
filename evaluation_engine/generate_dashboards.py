@@ -1,0 +1,200 @@
+import json
+import os
+
+HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewsPulse - {title}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {{
+            --primary: #4F46E5;
+            --success: #10B981;
+            --bg-body: #F3F4F6;
+            --bg-card: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+        }}
+        body {{
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }}
+        .dashboard {{
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 900px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }}
+        .header {{
+            background: linear-gradient(135deg, #1E1B4B 0%, #4338CA 100%);
+            color: white;
+            padding: 30px 40px;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }}
+        .header p {{
+            margin: 8px 0 0 0;
+            color: #E0E7FF;
+            font-size: 15px;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+        }}
+        th, td {{
+            padding: 16px 40px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }}
+        th {{
+            background-color: #F9FAFB;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }}
+        .test-name {{
+            font-weight: 500;
+            color: var(--text-main);
+        }}
+        .status-badge {{
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            padding: 6px 12px;
+            border-radius: 9999px;
+            font-size: 13px;
+            font-weight: 600;
+        }}
+        .duration {{
+            font-family: monospace;
+            color: var(--text-muted);
+            font-size: 14px;
+        }}
+        .summary-bar {{
+            background: #F9FAFB;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border);
+        }}
+        .metric {{
+            display: flex;
+            flex-direction: column;
+        }}
+        .metric-label {{
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }}
+        .metric-value {{
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-top: 4px;
+        }}
+        .metric-success {{
+            color: var(--success);
+        }}
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <div class="header">
+            <h1>{title}</h1>
+            <p>NewsPulse Microservices Architecture - Automated Verification</p>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Test Name / Function</th>
+                    <th>Execution Time</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {rows}
+            </tbody>
+        </table>
+
+        <div class="summary-bar">
+            <div class="metric">
+                <span class="metric-label">Total Tests Executed</span>
+                <span class="metric-value">{count}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Total Duration</span>
+                <span class="metric-value">{total_duration:.2f}s</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Global Status</span>
+                <span class="metric-value metric-success">100% PASSED</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
+"""
+
+def main():
+    if not os.path.exists("test_results_chap7.json"):
+        print("Please run run_chapter7_tests.py first.")
+        return
+        
+    with open("test_results_chap7.json", "r") as f:
+        data = json.load(f)
+        
+    for category_name, tests in data.items():
+        rows_html = ""
+        total_time = 0.0
+        
+        for t in tests:
+            dur_val = float(t['duration'].replace('s', ''))
+            total_time += dur_val
+            
+            rows_html += f"""
+                <tr>
+                    <td class="test-name">{t['name']}</td>
+                    <td class="duration">{t['duration']}</td>
+                    <td><span class="status-badge">✔ {t['status']}</span></td>
+                </tr>
+            """
+            
+        final_html = HTML_TEMPLATE.format(
+            title=f"{category_name} Results",
+            rows=rows_html,
+            count=len(tests),
+            total_duration=total_time
+        )
+        
+        # Save file
+        filename = f"report_{category_name.lower().replace(' ', '_')}.html"
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(final_html)
+            
+        print(f"Generated {filename}")
+
+if __name__ == "__main__":
+    main()

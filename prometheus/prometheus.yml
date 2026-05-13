@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'newspulse-services'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets:
+        - 'summarizer:8000'
+        - 'political_bias:8000'
+        - 'fakenews_detection:8000'
+        - 'counter_argument:8000'

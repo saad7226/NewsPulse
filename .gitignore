@@ -1,0 +1,72 @@
+# ── Secrets & Environment ────────────────────────────────────────────────────
+.env
+.env.production
+.env.local
+.env.*.local
+
+# ── Sensitive Keys ───────────────────────────────────────────────────────────
+gateway/private_key.pem
+
+# ── Database Files ───────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+auth_data/
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# ── ML Models (never commit model weights) ───────────────────────────────────
+models/
+*.bin
+*.safetensors
+*.gguf
+*.ot
+*.msgpack
+
+# ── Node / Frontend ──────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+.docker/
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ──────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Reports & Evaluation Output ─────────────────────────────────────────────
+report/*.json
+report/*.csv

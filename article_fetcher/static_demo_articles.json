@@ -1,0 +1,36 @@
+{
+    "articles": [
+        {
+            "title": "Quantum Computing Breakthrough: Researchers Achieve Stable Error Correction at Scale",
+            "description": "In a landmark achievement for the quantum computing industry, researchers at a leading quantum lab have demonstrated stable error correction across a 100-plus qubit array. This breakthrough significantly brings forward the timeline for commercially viable quantum computers capable of solving complex cryptographic and molecular simulation problems. The team utilized a novel topological qubit design that naturally suppresses environmental noise, representing a major paradigm shift from traditional superconducting architectures.",
+            "publishedAt": "2026-03-09T14:30:00Z",
+            "source": {
+                "name": "Quantum Weekly"
+            }
+        },
+        {
+            "title": "Next-Gen AI Models Spark Debate Over Copyright and Fair Use in Generative AI",
+            "description": "As the latest iteration of powerful generative AI models hits the market, a fierce debate is reigniting over copyright laws and the concept of fair use. Major publishing houses and independent creators are forming coalitions to demand transparency regarding the training datasets used by tech giants. The controversy centers on whether models that generate highly derivative artworks and code snippets constitute transformative use or blatant infringement. Legal experts predict this could lead to the most significant intellectual property legislation overhaul in the last twenty years.",
+            "publishedAt": "2026-03-09T12:15:00Z",
+            "source": {
+                "name": "Tech Policy Review"
+            }
+        },
+        {
+            "title": "The Rise of Edge AI: Why Processing is Leaving the Cloud and Returning to Devices",
+            "description": "Cloud computing dominated the last decade, but a new trend is rapidly taking over: Edge AI. Driven by the need for ultra-low latency, enhanced privacy, and reduced bandwidth costs, companies are increasingly deploying their AI models directly onto local hardware—from smartphones to IoT sensors. Recent advances in model quantization and dedicated neural processing units (NPUs) have made it possible to run sophisticated LLMs and vision models without ever connecting to a centralized server. Industry analysts forecast the Edge AI market will triple by 2030.",
+            "publishedAt": "2026-03-09T09:45:00Z",
+            "source": {
+                "name": "Silicon Insider"
+            }
+        },
+        {
+            "title": "Solid-State Batteries Enter Mass Production, Promising 1,000-Mile EV Ranges",
+            "description": "After years of prototype testing and laboratory breakthroughs, solid-state batteries are officially entering mass production. Several major automotive manufacturers announced joint ventures with battery startups to equip their 2027 flagship electric vehicles with this next-generation technology. Solid-state batteries replace the liquid electrolyte found in traditional lithium-ion cells with a solid material, dramatically increasing energy density, practically eliminating fire risks, and allowing for charging times under 10 minutes. This milestone is expected to rapidly accelerate the global transition away from internal combustion engines.",
+            "publishedAt": "2026-03-08T16:20:00Z",
+            "source": {
+                "name": "Auto & Energy Today"
+            }
+        }
+    ]
+}

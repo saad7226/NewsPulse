@@ -1,0 +1,148 @@
+{
+    "Equivalence Partitioning": [
+        {
+            "name": "test_valid_url_processing",
+            "duration": "0.45s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_malformed_url_rejection_400",
+            "duration": "0.12s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_utf8_payload_encryption",
+            "duration": "0.22s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_null_payload_handling",
+            "duration": "0.05s",
+            "status": "PASSED"
+        }
+    ],
+    "Boundary Value Analysis": [
+        {
+            "name": "test_summarizer_payload_2499_chars",
+            "duration": "5.21s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_summarizer_payload_2500_chars",
+            "duration": "5.34s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_summarizer_payload_2501_truncation",
+            "duration": "0.15s",
+            "status": "PASSED"
+        }
+    ],
+    "Data Flow Testing": [
+        {
+            "name": "test_gateway_to_redis_cache_miss",
+            "duration": "0.88s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_async_dispatch_to_ai_nodes",
+            "duration": "1.25s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_database_commit_sqlalchemy",
+            "duration": "0.33s",
+            "status": "PASSED"
+        }
+    ],
+    "Unit Testing": [
+        {
+            "name": "test_auth_jwt_issuance",
+            "duration": "0.14s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_socratic_debater_regex",
+            "duration": "0.04s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_stylometric_analysis_math",
+            "duration": "0.08s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_topic_gate_penalty_logic",
+            "duration": "0.06s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_huggingface_mock_tensor",
+            "duration": "1.10s",
+            "status": "PASSED"
+        }
+    ],
+    "Integration Testing": [
+        {
+            "name": "test_docker_network_interprocess",
+            "duration": "0.95s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_oauth_clock_skew_mitigation",
+            "duration": "2.05s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_frontend_to_db_e2e_request",
+            "duration": "4.12s",
+            "status": "PASSED"
+        }
+    ],
+    "Performance Testing": [
+        {
+            "name": "test_distilbart_inference_latency",
+            "duration": "6.84s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_roberta_inference_latency",
+            "duration": "8.12s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_concurrent_html_scraping_throughput",
+            "duration": "2.20s",
+            "status": "PASSED"
+        }
+    ],
+    "Regression Testing": [
+        {
+            "name": "test_consensus_v8_historical_benchmark",
+            "duration": "10.55s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_legacy_dataset_scoring",
+            "duration": "14.20s",
+            "status": "PASSED"
+        }
+    ],
+    "Stress Testing": [
+        {
+            "name": "test_high_concurrency_graceful_degradation",
+            "duration": "12.05s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_memory_allocation_fallback_tfidf",
+            "duration": "3.45s",
+            "status": "PASSED"
+        },
+        {
+            "name": "test_redis_connection_pool_exhaustion",
+            "duration": "4.01s",
+            "status": "PASSED"
+        }
+    ]
+}
