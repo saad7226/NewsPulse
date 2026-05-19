@@ -233,6 +233,7 @@ def _parse_html_sync(html: str):
     """
     CPU-bound only: extract text + metadata from already-downloaded HTML.
     Runs in the ThreadPoolExecutor so it never blocks the async event loop.
+    Includes aggressive BeautifulSoup search for og:image and twitter:image tags.
     """
     try:
         metadata = trafilatura.metadata.extract_metadata(html)
@@ -246,6 +247,26 @@ def _parse_html_sync(html: str):
         title = metadata.title if metadata else None
         publish_date = metadata.date if metadata else None
         image_url = metadata.image if metadata else None
+        
+        # Aggressive BS4 OpenGraph fallback if Trafilatura missed the image
+        if not image_url and html:
+            try:
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(html, "html.parser")
+                og_img = soup.find("meta", property="og:image")
+                if og_img and og_img.get("content"):
+                    image_url = og_img.get("content")
+                else:
+                    tw_img = soup.find("meta", name="twitter:image")
+                    if tw_img and tw_img.get("content"):
+                        image_url = tw_img.get("content")
+                    else:
+                        link_img = soup.find("link", rel="image_src")
+                        if link_img and link_img.get("href"):
+                            image_url = link_img.get("href")
+            except Exception as e:
+                logger.debug("BS4 OpenGraph parsing failed: %s", e)
+
         if isinstance(publish_date, str):
             try:
                 publish_date = datetime.fromisoformat(publish_date)
@@ -259,17 +280,22 @@ def _parse_html_sync(html: str):
         return None, None, None, None
 
 
-async def fetch_and_parse_url(url: str) -> Optional[ArticleOut]:
+async def fetch_and_parse_url(url: str, api_image_url: Optional[str] = None) -> Optional[ArticleOut]:
     """
     1. Check cache.
     2. Async-fetch HTML with the shared httpx client (non-blocking network I/O).
     3. Offload CPU parsing to the thread pool.
     4. Filter articles shorter than MIN_ARTICLE_TEXT_LEN characters.
+    5. Enforce priority: API Image > Scraped/OG Image (never overwrite with None).
     """
     key = _url_cache_key(url)
     cached = await redis_get_json(key)
     if cached:
-        return ArticleOut(**cached)
+        out = ArticleOut(**cached)
+        if not out.image_url and api_image_url:
+            out.image_url = api_image_url
+            asyncio.create_task(redis_set_json(key, out.model_dump(), ex=settings.URL_CACHE_TTL))
+        return out
 
     def _check_db():
         with SessionLocal() as db:
@@ -277,7 +303,8 @@ async def fetch_and_parse_url(url: str) -> Optional[ArticleOut]:
             if db_art:
                 return ArticleOut(
                     title=db_art.title, text=db_art.content, source=url, source_url=url,
-                    published=db_art.published_at, api_source=db_art.api_source
+                    published=db_art.published_at, api_source=db_art.api_source,
+                    image_url=api_image_url
                 )
             return None
 
@@ -347,7 +374,7 @@ async def fetch_and_parse_url(url: str) -> Optional[ArticleOut]:
 
     # --- CPU parse in thread pool (does NOT block event loop) ---
     loop = asyncio.get_running_loop()
-    title, text, published, image_url = await loop.run_in_executor(thread_pool, _parse_html_sync, html)
+    title, text, published, scraped_image_url = await loop.run_in_executor(thread_pool, _parse_html_sync, html)
 
     cleaned = clean_text(text or "")
 
@@ -355,6 +382,9 @@ async def fetch_and_parse_url(url: str) -> Optional[ArticleOut]:
     if len(cleaned) < settings.MIN_ARTICLE_TEXT_LEN:
         logger.info("Skipping %s — text too short (%d chars)", url, len(cleaned))
         return None
+
+    # Priority resolution: API Image > Scraped/OpenGraph Image
+    final_image_url = api_image_url if api_image_url else scraped_image_url
 
     out = ArticleOut(
         title=title,
@@ -364,7 +394,7 @@ async def fetch_and_parse_url(url: str) -> Optional[ArticleOut]:
         published=published.isoformat() if published else None,
         api_source="trafilatura",
         category=categorize_article(title, cleaned),
-        image_url=image_url
+        image_url=final_image_url
     )
     await redis_set_json(key, out.model_dump(), ex=settings.URL_CACHE_TTL)
 
@@ -531,7 +561,7 @@ async def bg_fetch_loop():
 
                     if tasks_local:
                         gathered = await asyncio.gather(
-                            *[fetch_and_parse_url(u) for u, _ in tasks_local],
+                            *[fetch_and_parse_url(u, api_image_url=meta.get("image_url")) for u, meta in tasks_local],
                             return_exceptions=True
                         )
                         for result, (url, art_meta) in zip(gathered, tasks_local):
@@ -551,6 +581,9 @@ async def bg_fetch_loop():
                                 continue
                             result.source_url = url
                             result.category = cat_name  # force correct category label
+                            # Backup priority fallback:
+                            if not result.image_url and art_meta.get("image_url"):
+                                result.image_url = art_meta.get("image_url")
                             stubs_local.append(result)
 
                     for art in stubs_local:
@@ -709,7 +742,7 @@ async def search_articles(
     for art_meta in articles_meta:
         art_url = art_meta.get("url")
         if art_url:
-            tasks.append(fetch_and_parse_url(art_url))
+            tasks.append(fetch_and_parse_url(art_url, api_image_url=art_meta.get("image_url")))
         else:
             raw = art_meta.get("description") or art_meta.get("content") or ""
             cleaned = clean_text(raw)
@@ -748,6 +781,11 @@ async def search_articles(
             item.source_url = art_meta.get("url")
             if not item.category or item.category == 'General':
                 item.category = categorize_article(item.title, item.text)
+            
+            # Backup priority safety check
+            if not item.image_url and art_meta.get("image_url"):
+                item.image_url = art_meta.get("image_url")
+                
             parsed_results.append(item)
             
     parsed_results.extend(stub_results)

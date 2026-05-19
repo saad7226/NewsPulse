@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { encryptPayload, decryptPayload } from '../utils/crypto';
 
-// If deployed via Docker, we access via same origin, but for local dev we hit localhost:8000
-const API_BASE = 'http://localhost:8000/api';
+// Use relative path in production to inherit HTTPS and host, preventing Mixed Content errors
+const API_BASE = import.meta.env.PROD ? '/api' : `http://${window.location.hostname}:8000/api`;
 
 /**
  * Creates an encrypted request, sends it to the Gateway, and decrypts the response.

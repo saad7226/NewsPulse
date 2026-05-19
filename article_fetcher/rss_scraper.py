@@ -72,6 +72,61 @@ def clean_html(raw_html: str) -> str:
     except Exception:
         return raw_html
 
+def extract_rss_image(entry) -> str:
+    """
+    Aggressively hunt for images in RSS entry metadata and tags.
+    Priority: media:content -> media:thumbnail -> enclosures -> links -> BeautifulSoup parsing of description/content
+    """
+    # 1. media:content url attribute
+    media_content = entry.get('media_content')
+    if media_content and isinstance(media_content, list):
+        for media in media_content:
+            if isinstance(media, dict) and media.get('url'):
+                return media.get('url')
+
+    # 2. media:thumbnail url attribute
+    media_thumbnail = entry.get('media_thumbnail')
+    if media_thumbnail and isinstance(media_thumbnail, list):
+        for thumb in media_thumbnail:
+            if isinstance(thumb, dict) and thumb.get('url'):
+                return thumb.get('url')
+
+    # 3. enclosures
+    enclosures = entry.get('enclosures')
+    if enclosures and isinstance(enclosures, list):
+        for enc in enclosures:
+            if isinstance(enc, dict) and enc.get('href') and enc.get('type', '').startswith('image/'):
+                return enc.get('href')
+
+    # 4. links (type starts with image/)
+    links = entry.get('links')
+    if links and isinstance(links, list):
+        for link in links:
+            if isinstance(link, dict):
+                if link.get('type', '').startswith('image/') and link.get('href'):
+                    return link.get('href')
+                if link.get('rel') == 'enclosure' and link.get('href'):
+                    href = link.get('href', '')
+                    if any(href.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif']):
+                        return href
+
+    # 5. HTML img parsing of description / content
+    for field in ['description', 'summary', 'content']:
+        val = entry.get(field)
+        if val:
+            if isinstance(val, list):
+                val = "".join([c.get('value', '') for c in val if isinstance(c, dict)])
+            if isinstance(val, str) and '<img' in val:
+                try:
+                    soup = BeautifulSoup(val, "html.parser")
+                    img = soup.find('img')
+                    if img and img.get('src'):
+                        return img.get('src')
+                except Exception:
+                    pass
+
+    return None
+
 async def fetch_feed(source: str, url: str) -> List[Dict]:
     loop = asyncio.get_running_loop()
     try:
@@ -98,13 +153,17 @@ async def fetch_feed(source: str, url: str) -> List[Dict]:
             if not text:
                 text = getattr(entry, 'title', '')
             
+            # Extract true RSS image url
+            image_url = extract_rss_image(entry)
+            
             articles.append({
                 "title": getattr(entry, 'title', ''),
                 "text": text,
                 "url": getattr(entry, 'link', ''),
                 "source": {"name": source},
                 "publishedAt": pub_iso,
-                "api_source": "rss"
+                "api_source": "rss",
+                "image_url": image_url
             })
         return articles
     except Exception as e:

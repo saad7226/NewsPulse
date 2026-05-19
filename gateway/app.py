@@ -11,10 +11,10 @@ _FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[_FRONTEND_URL],
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/health")
@@ -201,8 +201,8 @@ async def secure_process(request: Request):
                 prom_url = "http://prometheus:9090/api/v1/query"
                 tasks = [
                     client.get(prom_url, params={"query": "sum(summarizer_requests_total)"}, timeout=10.0),
-                    client.get(prom_url, params={"query": "sum(fakenews_requests_total)"}, timeout=10.0),
-                    client.get(prom_url, params={"query": "sum(political_bias_requests_total)"}, timeout=10.0),
+                    client.get(prom_url, params={"query": "sum(fake_news_requests_total)"}, timeout=10.0),
+                    client.get(prom_url, params={"query": "sum(bias_requests_total)"}, timeout=10.0),
                     client.get(prom_url, params={"query": "sum(counter_requests_total)"}, timeout=10.0),
                     client.get(prom_url, params={"query": "sum(rate(summarizer_request_latency_seconds_sum[5m])) / sum(rate(summarizer_request_latency_seconds_count[5m]))"}, timeout=10.0),
                     client.get(prom_url, params={"query": "sum(rate(fakenews_request_latency_seconds_sum[5m])) / sum(rate(fakenews_request_latency_seconds_count[5m]))"}, timeout=10.0)

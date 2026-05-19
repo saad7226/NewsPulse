@@ -143,8 +143,11 @@ export default function ArticleDetail({
     onRequireAuth,
     onAnalysisComplete
 }) {
+    const [hasImage, setHasImage] = useState(!!article?.image_url);
+
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        setHasImage(!!article?.image_url);
     }, [article]);
 
     const [bookmarked, setBookmarked] = useState(false);
@@ -333,9 +336,14 @@ export default function ArticleDetail({
                     )}
                 </div>
                 
-                {article.image_url && (
+                {hasImage && (
                     <div style={{ marginBottom: '2.5rem', borderRadius: '12px', overflow: 'hidden', display: 'flex', justifyContent: 'center', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                        <img src={article.image_url} alt={article.title} style={{ width: '100%', maxHeight: '500px', objectFit: 'cover' }} />
+                        <img 
+                            src={article.image_url} 
+                            alt={article.title} 
+                            style={{ width: '100%', maxHeight: '500px', objectFit: 'cover' }} 
+                            onError={() => setHasImage(false)}
+                        />
                     </div>
                 )}
                 

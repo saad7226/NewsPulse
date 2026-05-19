@@ -16,6 +16,65 @@ const CAT_CONFIG = {
     General:       { emoji: '📰', color: '#64748b', bg: '#F8FAFC' },
 };
 
+function EditorialCard({ article, idx, onSelectArticle }) {
+    const isHero = idx === 0;
+    const cat = article.category || 'General';
+    const catCfg = CAT_CONFIG[cat] || CAT_CONFIG.General;
+    const dateStr = article.published
+        ? new Date(article.published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : 'Live';
+
+    const [hasImage, setHasImage] = useState(!!article.image_url);
+
+    return (
+        <article 
+            className={`editorial-card ${isHero && hasImage ? 'hero-article' : 'bottom-grid-item'} ${!hasImage ? 'text-only-card' : ''}`} 
+            onClick={() => onSelectArticle(article)}
+            style={!hasImage ? {
+                borderLeft: `4px solid ${catCfg.color}`
+            } : {}}
+        >
+            {hasImage && (
+                <div
+                    className="editorial-image-container"
+                    style={{ height: isHero ? '420px' : '190px', marginBottom: '1rem' }}
+                >
+                    <img
+                        className="editorial-image"
+                        src={article.image_url}
+                        alt={article.title || 'Article image'}
+                        loading="lazy"
+                        onError={() => {
+                            setHasImage(false);
+                        }}
+                    />
+                </div>
+            )}
+            <div className="editorial-tag">
+                {catCfg.emoji} {cat}
+            </div>
+            <h3 className="editorial-title">
+                {article.title || 'Untitled Article'}
+            </h3>
+            {isHero && hasImage && (
+                <p className="editorial-snippet">
+                    {article.text?.substring(0, 500)}...
+                </p>
+            )}
+            {(!isHero || !hasImage) && (
+                <p className="editorial-snippet" style={{ WebkitLineClamp: 3 }}>
+                    {article.text?.substring(0, 150)}...
+                </p>
+            )}
+            <div className="editorial-meta">
+                <span className="editorial-meta-source" title={article.source || 'Unknown'}>{article.source || 'Unknown'}</span>
+                <span style={{ opacity: 0.5 }}>•</span>
+                <span>{dateStr}</span>
+            </div>
+        </article>
+    );
+}
+
 export default function NewsFeed({ onSelectArticle, externalQuery, token }) {
     // All articles fetched from cache/API
     const [allArticles, setAllArticles] = useState([]);
@@ -327,63 +386,14 @@ export default function NewsFeed({ onSelectArticle, externalQuery, token }) {
             {/* ── Magazine Grid ── */}
             {!searching && displayed.length > 0 && (
                 <div className="magazine-grid fade-in">
-                    {displayed.map((article, idx) => {
-                        const isHero = idx === 0;
-                        const type = isHero ? 'hero' : 'bottom';
-                        const cat = article.category || 'General';
-                        const catCfg = CAT_CONFIG[cat] || CAT_CONFIG.General;
-                        const dateStr = article.published
-                            ? new Date(article.published).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                            : 'Live';
-
-                        return (
-                            <article 
-                                className={`editorial-card ${isHero ? 'hero-article' : 'bottom-grid-item'}`} 
-                                onClick={() => onSelectArticle(article)} 
-                                key={article.id || article.title || idx}
-                            >
-                                {/* Only render image block when the article actually has one */}
-                                {article.image_url && (
-                                    <div
-                                        className="editorial-image-container"
-                                        style={{ height: isHero ? '420px' : '190px', marginBottom: '1rem' }}
-                                    >
-                                        <img
-                                            className="editorial-image"
-                                            src={article.image_url}
-                                            alt={article.title || 'Article image'}
-                                            loading="lazy"
-                                            onError={e => {
-                                                // If image fails to load, hide the whole container
-                                                e.currentTarget.closest('.editorial-image-container').style.display = 'none';
-                                            }}
-                                        />
-                                    </div>
-                                )}
-                                <div className="editorial-tag">
-                                    {catCfg.emoji} {cat}
-                                </div>
-                                <h3 className="editorial-title">
-                                    {article.title || 'Untitled Article'}
-                                </h3>
-                                {isHero && (
-                                    <p className="editorial-snippet">
-                                        {article.text?.substring(0, 500)}...
-                                    </p>
-                                )}
-                                {!isHero && (
-                                    <p className="editorial-snippet" style={{ WebkitLineClamp: 3 }}>
-                                        {article.text?.substring(0, 150)}...
-                                    </p>
-                                )}
-                                <div className="editorial-meta">
-                                    <span className="editorial-meta-source" title={article.source || 'Unknown'}>{article.source || 'Unknown'}</span>
-                                    <span style={{ opacity: 0.5 }}>•</span>
-                                    <span>{dateStr}</span>
-                                </div>
-                            </article>
-                        );
-                    })}
+                    {displayed.map((article, idx) => (
+                        <EditorialCard 
+                            key={article.id || article.title || idx} 
+                            article={article} 
+                            idx={idx} 
+                            onSelectArticle={onSelectArticle} 
+                        />
+                    ))}
                 </div>
             )}
         </div>

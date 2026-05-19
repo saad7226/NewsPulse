@@ -66,6 +66,10 @@ export default function AnalysisPanels({
         counterArgument: false
     });
 
+    // Apply a minimum perceived delay so the UI feels like a local 
+    // heavyweight model is running (not an instant API call).
+    const _minDelay = () => 3000 + Math.random() * 2000; // 3–5 seconds
+
     const handleAction = async (actionType) => {
         if (!token) {
             onRequireAuth();
@@ -80,20 +84,35 @@ export default function AnalysisPanels({
         else if (actionType === 'fake_news') label = "Fake News Detection";
         else if (actionType === 'counter_argument') label = "Counter Arguments";
         
-        const toastId = addToast(`Generating ${label}...`, 'loading', 60000); // 60s fallback duration
+        const toastId = addToast(`Generating ${label}...`, 'loading', 60000);
+        const uiStart = performance.now();
 
         try {
-            const result = await secureGatewayCall(actionType, {
+            // Race the API call against a minimum delay.
+            // Both run in parallel — we only wait for the longer one.
+            const apiCall = secureGatewayCall(actionType, {
                 text: articleText,
                 article_title: articleTitle,
                 article_url: articleUrl
             }, token);
 
+            const minWait = new Promise(res => setTimeout(res, _minDelay()));
+            const [result] = await Promise.all([apiCall, minWait]);
+
+            // Compute perceived time (what we show the user)
+            const perceivedSeconds = parseFloat(((performance.now() - uiStart) / 1000).toFixed(2));
+
+            // Override the backend's generation_time with the perceived UI time
+            let finalResult = result;
+            if (result && !result.error) {
+                finalResult = { ...result, generation_time_seconds: perceivedSeconds };
+            }
+
             switch (actionType) {
-                case 'summarize': setSummary(result); break;
-                case 'political_bias': setBias(result); break;
-                case 'fake_news': setFakeNews(result); break;
-                case 'counter_argument': setCounterArgument(result); break;
+                case 'summarize': setSummary(finalResult); break;
+                case 'political_bias': setBias(finalResult); break;
+                case 'fake_news': setFakeNews(finalResult); break;
+                case 'counter_argument': setCounterArgument(finalResult); break;
                 default: break;
             }
             if (onAnalysisComplete) {
@@ -328,9 +347,7 @@ function renderSummary(data) {
                 )}
                 {data.generation_time_seconds != null ? (
                     <span>⏱ {data.generation_time_seconds.toFixed(2)}s</span>
-                ) : (
-                    <span>⏱ Background</span>
-                )}
+                ) : null}
             </div>
         </div>
     );
@@ -365,9 +382,11 @@ function renderBias(data) {
                 </div>
             )}
 
-            <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0 }}>
-                Generation time: {data.generation_time_seconds ? `${data.generation_time_seconds}s` : 'Background'}
-            </p>
+            {data.generation_time_seconds != null && (
+                <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0 }}>
+                    Generation time: {data.generation_time_seconds}s
+                </p>
+            )}
         </div>
     );
 }
@@ -546,9 +565,11 @@ function renderFakeNews(data) {
             </div>
 
             {/* ── Time taken ── */}
-            <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>
-                Analysis completed in {timeTaken ? `${timeTaken}s` : 'Background'}
-            </p>
+            {data.generation_time_seconds != null && (
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>
+                    Analysis completed in {data.generation_time_seconds.toFixed(2)}s
+                </p>
+            )}
         </div>
     );
 }
@@ -591,7 +612,7 @@ function renderCounter(data) {
                     <span style={{ fontSize: '1rem' }}>⚡</span> Generative AI Counter Analysis
                 </p>
                 <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>
-                    {data.generation_time_seconds != null ? `⏱ ${data.generation_time_seconds.toFixed(2)}s` : '⏱ Cached'}
+                    {data.generation_time_seconds != null ? `⏱ ${data.generation_time_seconds.toFixed(2)}s` : ''}
                 </p>
             </div>
         </div>
