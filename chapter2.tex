@@ -1,0 +1,132 @@
+\chapter{Software Requirement Specifications}
+\label{ch:software-requirement-specifications}
+\newpage
+
+\section{Introduction}
+This chapter defines the Software Requirement Specifications (SRS) for the NewsPulse platform. It establishes the functional and non-functional requirements that govern the architectural design, security boundaries, and local machine learning execution sequences within the decoupled microservices ecosystem.
+
+\subsection{Purpose}
+This document specifies the complete software requirements for the NewsPulse platform, a local news aggregation and multi-dimensional analysis engine designed to execute within strict hardware constraints without cloud-based Large Language Model (LLM) dependencies. The scope of these specifications encompasses the React client interface, the centralized FastAPI gateway, the high-speed Redis caching broker, and the suite of four stateless Natural Language Processing (NLP) inference containers. This document serves as the primary contract for development, quality assurance, system integration, and final project evaluation.
+
+\subsection{Document Conventions}
+The organization and structural formatting of this document conform to the IEEE 830-1998 standards for software requirements specifications. To maintain clarity across technical layers, specific typographical conventions are systematically applied:
+\begin{itemize}
+    \item \textbf{System Components and Directories:} Directory locations and software packages are denoted in a monospaced font (e.g., \texttt{/app/data}, \texttt{trafilatura}, \texttt{sqlalchemy}).
+    \item \textbf{Cryptographic Protocols:} Asymmetric and symmetric security standards are capitalized in standard sans-serif notation (e.g., RSA-OAEP, AES-GCM).
+    \item \textbf{Machine Learning Models:} Model identifiers and specific weights are formatted as literal strings (e.g., \texttt{sshleifer/\allowbreak{}distilbart-\allowbreak{}cnn-\allowbreak{}12-6}, \texttt{valurank/\allowbreak{}distilroberta-\allowbreak{}bias}).
+    \item \textbf{Requirement Labeling:} Requirements are assigned unique identifiers (e.g., REQ-F01 for functional requirements, REQ-S01 for security requirements) to facilitate tracing and validation during system testing.
+\end{itemize}
+
+\subsection{Intended Audience and Reading Suggestions}
+This document is prepared for software developers, backend engineers, system security auditors, database administrators, and the academic assessment panel. 
+\begin{itemize}
+    \item \textbf{Backend and AI Engineers:} Should focus on Section 2 (Functional Requirements), specifically the processing pipelines, token limits, and the deterministic fallback algorithms.
+    \item \textbf{Security Auditors:} Should prioritize Section 3.1 (Security Requirements), examining the hybrid cryptographic key exchanges and payload encapsulation boundaries.
+    \item \textbf{Frontend Developers:} Should review Section 3.2 (Usability Requirements) to understand the data-mapping schemas and the Explainable AI (XAI) text highlighting components.
+    \item \textbf{Academic Evaluators:} Are suggested to read the Product Scope, followed by the Functional Requirements, and conclude with the Non-Functional Requirements to evaluate how the system handles severe resource constraints.
+\end{itemize}
+
+\subsection{Product Scope}
+NewsPulse is designed to replace expensive, high-latency cloud-based generative AI systems with a suite of lightweight, CPU-optimized transformers and deterministic natural language processing fallbacks. The system automatically gathers news from public APIs and RSS feeds, caches the content, and runs parallel analytical pipelines. These pipelines evaluate fake news credibility, classify political bias using overlapping text windows, generate Socratic counter-arguments, and produce summaries. By performing all computations locally on standard central processing units (CPUs), the platform eliminates external API subscription costs. Communication security is maintained by encrypting all data transit between the client interface and the gateway using a hybrid asymmetric-symmetric cryptosystem.
+
+\section{Functional Requirements}
+The functional requirements specify the explicit operational capabilities that the NewsPulse microservices must execute.
+
+\subsection{Ingestion and Cleaning Requirements}
+\begin{itemize}
+    \item \textbf{REQ-F01: Asynchronous Scheduled Aggregation} \\
+    The system must operate an asynchronous aggregation daemon (\texttt{article\_fetcher}) running within a non-blocking background loop. Every 15 minutes, this loop must poll configured external sources (NewsAPI, NewsData.io, GNews, and RSS feeds) for new content. The daemon must parse the results, categorize each story into one of eight domains (General, Politics, Technology, Sports, Business, Entertainment, Health, Science) using keyword heuristics, deduplicate the stories using fast string normalization of URLs and titles, and write the active array to a Redis "hot\_news" key.
+    \item \textbf{REQ-F02: Robust Multi-Tier Crawler Fallback} \\
+    When fetching individual article bodies, the \texttt{article\_fetcher} must execute a three-tier connection degradation pipeline to bypass anti-bot locks, incomplete RSS feeds, and TLS restrictions:
+    \begin{enumerate}
+        \item \textit{Tier 1 (Primary):} An asynchronous HTTP client request utilizing randomized browser header spoofing.
+        \item \textit{Tier 2 (Secondary):} A native scraping execution using the \texttt{trafilatura} download helper.
+        \item \textit{Tier 3 (Tertiary):} A direct socket connection via a raw pool manager configured with unverified TLS settings (\texttt{cert\_reqs='CERT\_NONE'}) to bypass strict local handshake limitations.
+    \end{enumerate}
+    The system must discard scraped contents that fall below a minimum length of 100 characters.
+\end{itemize}
+
+\subsection{Analytical Processing Requirements}
+\begin{itemize}
+    \item \textbf{REQ-F03: Hardware-Safe Summarization with Heuristic Fallback} \\
+    The summarization service must load a local instance of the \texttt{sshleifer/\allowbreak{}distilbart-\allowbreak{}cnn-\allowbreak{}12-6} model. To prevent out-of-memory errors on CPU instances, the input text must be truncated at the character level to a maximum of 2500 characters before tokenization. If the transformer pipeline fails or system memory is depleted, the service must execute a deterministic Term Frequency (TF) extractive algorithm. This fallback must tokenize sentences, filter out common English stop-words, score sentences based on token frequency normalized by the square root of the sentence length, and return the top five sentences.
+    \item \textbf{REQ-F04: Multi-Signal Sentinel Credibility Consensus} \\
+    The credibility engine must evaluate incoming texts using a multi-signal consensus formula rather than relying on a single classifier. The Sentinel engine must calculate a final fake news probability by combining:
+    \begin{enumerate}
+        \item \textit{Machine Learning Signal (45\%):} Probability score from a local BERT model (\texttt{dhruvpal/\allowbreak{}fake-\allowbreak{}news-\allowbreak{}bert}).
+        \item \textit{Stylometric Signal (25\%):} Vocabulary sensationalism ratios, ALL-CAPS token densities, exclamation mark frequencies, and regex-based clickbait penalties.
+        \item \textit{Cognitive Signal (20\%):} Lexical diversity and emotional vs. objective word ratios.
+        \item \textit{Baseline Signal (10\%):} A neutral anchor value of 0.5.
+    \end{enumerate}
+    This raw consensus probability must be adjusted using a domain credibility multiplier (0.8x for trusted domains, 1.3x for low-trust sources). If the article title matches verified facts via live API searches, the probability must be scaled down to 25\% of the BERT score. If style is highly objective (style score < 0.1 and cognitive score < 0.3), the fake news probability must be capped at 0.49 to suppress false positive ML classifications. The service must output the sentence with the highest sensational density as the Explainable AI (XAI) highlight phrase.
+    \item \textbf{REQ-F05: Window-Averaged and Topic-Gated Bias Classification} \\
+    The political bias service must process text using a local DistilRoBERTa model (\texttt{valurank/\allowbreak{}distilroberta-\allowbreak{}bias}). Long articles must be parsed in overlapping 512-token windows (stride of 448 tokens, overlap of 64 tokens). The system must compute a weighted average of chunk probabilities, assigning a 1.5x weight to the introduction and conclusion chunks. To prevent false positives in apolitical domains, the service must run a "Topic Gate" keyword heuristic. If an article contains sports, science, or technology vocabulary without sufficient political anchor words, a Topic Penalty (0.3 to 0.7) must override the label to "Center" with high calibrated confidence. The service must also compute a Left/Right keyword framing index to determine the ideological direction.
+    \item \textbf{REQ-F06: Hybrid Socratic Debater Engine} \\
+    The counter-argument service must generate critical perspectives using a quantized sequence-to-sequence model (\texttt{MBZUAI/\allowbreak{}LaMini-\allowbreak{}Flan-\allowbreak{}T5-\allowbreak{}248M}) optimized via PyTorch Dynamic INT8 Quantization for local CPU execution. The input prompt must be capped at 250 words. The service must post-process the generated text by splitting it on sentence boundaries and filtering out repetitive loops, run-on sentences, grammatical negation errors, and dangling prepositions. If this generative pipeline fails, the service must execute a deterministic fallback that uses regex to extract proper nouns and matches domains to select a pre-defined Socratic template response.
+\end{itemize}
+
+\subsection{Monitoring Requirements}
+\begin{itemize}
+    \item \textbf{REQ-F07: Asynchronous Telemetry Collection} \\
+    All FastAPI services must collect and expose operational metrics at a standardized \texttt{/metrics} endpoint. The services must use the \texttt{prometheus\_client} library configured with a specialized multi-process directory environment. This setup allows the Prometheus scraper to aggregate request counts, latency histograms, database performance, and cache hit ratios across multiple Uvicorn and Gunicorn worker threads.
+\end{itemize}
+
+\section{Non-Functional Requirements}
+The non-functional requirements establish the performance, security, and portability standards for the NewsPulse platform.
+
+\subsection{Security Requirements}
+\begin{itemize}
+    \item \textbf{REQ-S01: End-to-End Cryptographic Payload transit} \\
+    All data transit between the React client and the FastAPI gateway must be encrypted to prevent traffic interception. The system must implement a hybrid cryptosystem:
+    \begin{enumerate}
+        \item \textit{Symmetric Layer:} Plaintext requests are encrypted using a transient 32-byte AES key in Galois/Counter Mode (AES-256-GCM) with a unique 16-byte initialization vector (IV) and a 16-byte authentication tag.
+        \item \textit{Asymmetric Layer:} The AES key is encrypted using the gateway's public RSA-2048 key with Optimal Asymmetric Encryption Padding (OAEP) utilizing the SHA-256 hash function.
+    \end{enumerate}
+    The final payload must be transmitted as a single, Base64-encoded bundle containing the encrypted AES key (first 256 bytes), the IV (next 16 bytes), the ciphertext, and the authentication tag (last 16 bytes).
+    \item \textbf{REQ-S02: Gateway-Level Token Validation and Time-Drift Allowance} \\
+    The gateway must validate JSON Web Tokens (JWT) for all stateful user operations. To prevent authentication failures when deploying the system across distributed cloud nodes or virtual machines, the gateway's JWT validation routine must implement a \texttt{clock\_skew\_in\_seconds} allowance of 10 seconds to handle system time-drift.
+    \item \textbf{REQ-S03: Relational Database Isolation} \\
+    To prevent security breaches from escalating, each service must isolate its database credentials. SQLite databases must run inside separate container volumes, and passwords must be salted and hashed using the \texttt{passlib} library's \texttt{bcrypt} implementation before storage.
+\end{itemize}
+
+\subsection{Usability Requirements}
+\begin{itemize}
+    \item \textbf{REQ-U01: Dynamic Analytical Visualizations} \\
+    The React user interface must display bias distributions, credibility scores, and category metrics using dynamic charts from the \texttt{recharts} library.
+    \item \textbf{REQ-U02: Sentence-Level Explainable AI Highlight Rendering} \\
+    The user interface must render the sentence highlighted by the credibility and bias engines as sensational or polarized. This text must be highlighted in the main article body to provide the user with clear visual evidence.
+\end{itemize}
+
+\subsection{Reliability Requirements}
+\begin{itemize}
+    \item \textbf{REQ-R01: Dual-Layer In-Memory and Redis Caching} \\
+    Before running a forward pass on any local machine learning model, each service must check a local \texttt{TTLCache} and the shared Redis cache using a SHA-256 hash of the article text. If a cached analysis is found, the service must return it instantly to eliminate redundant CPU computation.
+    \item \textbf{REQ-R02: Database Crash Isolation} \\
+    The platform's microservices must interact with separate SQLite database files. A database crash, lock, or file corruption in one microservice (such as the political bias logging table) must not affect the operation of the other services.
+\end{itemize}
+
+\subsection{Maintainability/Supportability Requirements}
+\begin{itemize}
+    \item \textbf{REQ-M01: Decoupled Container Orchestration} \\
+    The system infrastructure must be organized as an 11-container Dockerized ecosystem using Docker Compose. The services must be isolated into a dedicated bridge network. Modifying or updating a specific service (such as updating the political bias model files or changing the Socratic debater templates) must only require rebuilding that specific container without interrupting global gateway traffic.
+\end{itemize}
+
+\subsection{Portability Requirements}
+\begin{itemize}
+    \item \textbf{REQ-P01: Hardware-Independent CPU Execution} \\
+    All NLP models and heuristics must run strictly on standard central processing units (CPUs). The platform must not require proprietary hardware acceleration platforms (such as NVIDIA CUDA) or cloud-based GPU instances, ensuring compatibility with standard, off-the-shelf consumer computers.
+\end{itemize}
+
+\subsection{Efficiency Requirements}
+\begin{itemize}
+    \item \textbf{REQ-E01: Character-Level Truncation Limits} \\
+    To prevent system memory exhaustion and ensure predictable processing speeds on standard CPUs, all analytical containers must enforce strict character-level input limits (e.g., capping summarizer inputs at 2500 characters, which represents approximately 500-600 words).
+    \item \textbf{REQ-E02: Non-Blocking Event Loop Thread Delegation} \\
+    To ensure the FastAPI event loops remain responsive, the CPU-bound parsing operations (such as \texttt{trafilatura} HTML extraction and regex search arrays) must be offloaded to a designated local \texttt{ThreadPoolExecutor}.
+\end{itemize}
+
+\subsection{Domain Requirements}
+\begin{itemize}
+    \item \textbf{REQ-D01: Deterministic and reproducible Analysis} \\
+    The system must generate deterministic, reproducible outputs to satisfy academic and journalistic integrity standards. By replacing generative LLM APIs with optimized, local, quantized models and rule-based template fallbacks, the system prevents random model hallucinations. The analytical results and summaries must remain strictly anchored to the source text.
+\end{itemize}

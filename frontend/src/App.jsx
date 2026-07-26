@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Newspaper, UserCircle, LogIn, LogOut, AlignLeft, AlertTriangle, Scale, MessageSquare, Search, X, ShieldCheck, Lock, Menu } from 'lucide-react';
+import { Newspaper, UserCircle, LogIn, LogOut, AlignLeft, AlertTriangle, Scale, MessageSquare, Search, X, ShieldCheck, Lock, Menu, PenLine, Newspaper as Community } from 'lucide-react';
 import { secureGatewayCall } from './api/gateway';
 import NewsFeed from './components/NewsFeed';
 import ArticleDetail from './components/ArticleDetail';
@@ -13,6 +13,9 @@ import AdminDashboard from './components/AdminDashboard';
 import SavedArticles from './components/SavedArticles';
 import AdvancedSearchBar from './components/AdvancedSearchBar';
 import AnalyzeArticlePage from './components/AnalyzeArticlePage';
+import ArticleWriter from './components/ArticleWriter';
+import WriterDashboard from './components/WriterDashboard';
+import CommunityFeed from './components/CommunityFeed';
 
 // Decode is_admin from JWT without external libs
 function decodeIsAdmin(token) {
@@ -44,14 +47,44 @@ function App() {
 
   // Global Routing State
   const [currentView, setCurrentView] = useState('feed');
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
 
   const handleNavigateAnalyze = () => {
     setSelectedArticle(null);
     setSelectedHistoryItem(null);
     setCurrentView('analyze');
+    window.history.pushState({ view: 'analyze' }, '');
   };
-  const [selectedArticle, setSelectedArticle] = useState(null);
-  const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      if (event.state && event.state.view) {
+        setCurrentView(event.state.view);
+        if (event.state.view === 'article') {
+          setSelectedArticle(event.state.article || null);
+          setSelectedHistoryItem(null);
+        } else if (event.state.view === 'history_detail') {
+          setSelectedHistoryItem(event.state.item || null);
+          setSelectedArticle(null);
+        } else {
+          setSelectedArticle(null);
+          setSelectedHistoryItem(null);
+        }
+      } else {
+        setCurrentView('feed');
+        setSelectedArticle(null);
+        setSelectedHistoryItem(null);
+      }
+    };
+
+    if (!window.history.state) {
+      window.history.replaceState({ view: 'feed' }, '');
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Global Search State (from header navbar)
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
@@ -132,22 +165,77 @@ function App() {
     setCounterArgument(null);
     setSelectedHistoryItem(null);
     setCurrentView('article');
+    window.history.pushState({ view: 'article', article }, '');
   };
 
   const handleBackToFeed = () => {
     setSelectedArticle(null);
     setSelectedHistoryItem(null);
     setCurrentView('feed');
+    window.history.pushState({ view: 'feed' }, '');
   };
 
   const handleSelectHistoryItem = (item) => {
     setSelectedHistoryItem(item);
     setCurrentView('history_detail');
+    window.history.pushState({ view: 'history_detail', item }, '');
   };
 
   const handleSelectProfile = () => {
     setSelectedHistoryItem(null);
     setCurrentView('profile');
+    window.history.pushState({ view: 'profile' }, '');
+  };
+
+  const handleNavigateDashboard = () => {
+    setSelectedArticle(null);
+    setSelectedHistoryItem(null);
+    setCurrentView('dashboard');
+    window.history.pushState({ view: 'dashboard' }, '');
+  };
+
+  const handleNavigateAdmin = () => {
+    setSelectedArticle(null);
+    setSelectedHistoryItem(null);
+    setCurrentView('admin');
+    window.history.pushState({ view: 'admin' }, '');
+  };
+
+  const handleNavigateSaved = () => {
+    setSelectedArticle(null);
+    setSelectedHistoryItem(null);
+    setCurrentView('saved');
+    window.history.pushState({ view: 'saved' }, '');
+  };
+
+  // ── Article Writer navigation ──────────────────────────────────────────────
+  const [writerEditArticle, setWriterEditArticle] = useState(null);
+  const [showArticleWriter, setShowArticleWriter] = useState(false);
+  const [communitySelectedArticle, setCommunitySelectedArticle] = useState(null);
+
+  const handleNavigateWriter = () => {
+    setSelectedArticle(null);
+    setSelectedHistoryItem(null);
+    setCommunitySelectedArticle(null);
+    setCurrentView('writer');
+    window.history.pushState({ view: 'writer' }, '');
+  };
+
+  const handleNavigateCommunity = () => {
+    setSelectedArticle(null);
+    setSelectedHistoryItem(null);
+    setCurrentView('community');
+    window.history.pushState({ view: 'community' }, '');
+  };
+
+  const handleOpenWriter = (articleToEdit = null) => {
+    setWriterEditArticle(articleToEdit);
+    setShowArticleWriter(true);
+  };
+
+  const handleCloseWriter = () => {
+    setShowArticleWriter(false);
+    setWriterEditArticle(null);
   };
 
   const handleLoginSuccess = (newToken, newUser) => {
@@ -167,6 +255,7 @@ function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setCurrentView('feed');
+    window.history.pushState({ view: 'feed' }, '');
   };
 
   useEffect(() => {
@@ -194,6 +283,7 @@ function App() {
     } catch { setUser('Admin'); localStorage.setItem('user', 'Admin'); }
     setShowAdminModal(false);
     setCurrentView('admin');
+    window.history.pushState({ view: 'admin' }, '');
   };
 
   const handleGlobalSearch = (e) => {
@@ -241,10 +331,12 @@ function App() {
           onSelectHistoryItem={handleSelectHistoryItem}
           onSelectProfile={handleSelectProfile}
           onBackToFeed={handleBackToFeed}
-          onNavigateDashboard={() => setCurrentView('dashboard')}
-          onNavigateAdmin={() => setCurrentView('admin')}
-          onNavigateSaved={() => setCurrentView('saved')}
+          onNavigateDashboard={handleNavigateDashboard}
+          onNavigateAdmin={handleNavigateAdmin}
+          onNavigateSaved={handleNavigateSaved}
           onNavigateAnalyze={handleNavigateAnalyze}
+          onNavigateWriter={handleNavigateWriter}
+          onNavigateCommunity={handleNavigateCommunity}
           onLoginClick={() => setShowAuthModal(true)}
           onAdminLoginClick={() => setShowAdminModal(true)}
           currentView={currentView}
@@ -302,34 +394,40 @@ function App() {
                       ) : (
                           <UserCircle size={20} />
                       )}
-                      {globalProfile.full_name || user} ▾
+                      <span className="user-name-text">{globalProfile.full_name || user}</span> ▾
                     </button>
                     {showUserMenu && (
                       <div style={{
                         position: 'absolute', top: 'calc(100% + 0.5rem)', right: 0,
-                        background: '#ffffff', border: '1px solid #E2E8F0',
-                        borderRadius: '14px', boxShadow: '0 10px 40px -5px rgba(0,0,0,0.15)',
-                        minWidth: '200px', padding: '0.5rem', zIndex: 9999
+                        background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
+                        borderRadius: '14px', boxShadow: 'var(--shadow-xl)',
+                        minWidth: '220px', padding: '0.5rem', zIndex: 9999
                       }}>
                         <button onClick={() => { setShowUserMenu(false); handleSelectProfile(); }}
-                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 1rem', borderRadius: '10px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, color: '#0f172a', transition: 'background 0.15s' }}
-                          onMouseOver={e => e.currentTarget.style.background = '#F1F5F9'}
+                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 1rem', borderRadius: '10px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', transition: 'background 0.15s' }}
+                          onMouseOver={e => e.currentTarget.style.background = 'var(--bg-color)'}
                           onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                           <UserCircle size={17} color="#6366f1" /> My Profile &amp; Preferences
+                        </button>
+                        <button onClick={() => { setShowUserMenu(false); handleNavigateWriter(); }}
+                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 1rem', borderRadius: '10px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', transition: 'background 0.15s' }}
+                          onMouseOver={e => e.currentTarget.style.background = 'var(--bg-color)'}
+                          onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                          <PenLine size={17} color="#10b981" /> My Articles
                         </button>
                         {/* System Matrix — only visible to admin users */}
                         {isAdmin && (
                           <button onClick={() => { setShowUserMenu(false); setCurrentView('admin'); }}
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 1rem', borderRadius: '10px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, color: '#0f172a', transition: 'background 0.15s' }}
-                            onMouseOver={e => e.currentTarget.style.background = '#F1F5F9'}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 1rem', borderRadius: '10px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', transition: 'background 0.15s' }}
+                            onMouseOver={e => e.currentTarget.style.background = 'var(--bg-color)'}
                             onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                             <ShieldCheck size={17} color="#38BDF8" /> System Matrix
                           </button>
                         )}
-                        <hr style={{ margin: '0.4rem 0', border: 'none', borderTop: '1px solid #E2E8F0' }} />
+                        <hr style={{ margin: '0.4rem 0', border: 'none', borderTop: '1px solid var(--border-color)' }} />
                         <button onClick={() => { setShowUserMenu(false); handleLogout(); }}
                           style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 1rem', borderRadius: '10px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.875rem', fontWeight: 600, color: '#DC2626', transition: 'background 0.15s' }}
-                          onMouseOver={e => e.currentTarget.style.background = '#FEF2F2'}
+                          onMouseOver={e => e.currentTarget.style.background = 'rgba(220, 38, 38, 0.1)'}
                           onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                           <LogOut size={17} color="#DC2626" /> Sign Out
                         </button>
@@ -420,6 +518,28 @@ function App() {
                     />
                 )}
 
+                {currentView === 'writer' && (
+                    token
+                        ? <WriterDashboard
+                              token={token}
+                              user={user}
+                              onWriteNew={handleOpenWriter}
+                              onViewPublished={(a) => {
+                                  setCommunitySelectedArticle(a);
+                                  handleNavigateCommunity();
+                              }}
+                          />
+                        : <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 500 }}>Please sign in to write articles.</div>
+                )}
+
+                {currentView === 'community' && (
+                    <CommunityFeed 
+                        token={token} 
+                        initialSelectedArticle={communitySelectedArticle}
+                        onBack={() => setCommunitySelectedArticle(null)}
+                    />
+                )}
+
             </div>
         </main>
 
@@ -437,6 +557,16 @@ function App() {
         <AdminLoginModal
           onClose={() => setShowAdminModal(false)}
           onAdminLogin={handleAdminLogin}
+        />
+      )}
+
+      {/* Article Writer — fullscreen overlay editor */}
+      {showArticleWriter && (
+        <ArticleWriter
+          token={token}
+          user={user}
+          initialArticle={writerEditArticle}
+          onClose={handleCloseWriter}
         />
       )}
     </div>

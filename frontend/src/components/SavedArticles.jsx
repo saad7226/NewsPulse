@@ -40,18 +40,18 @@ export default function SavedArticles({ token }) {
     );
 
     return (
-        <div style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto' }}>
+        <div className="saved-articles-container" style={{ padding: '2rem 1rem', maxWidth: '900px', margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.75rem' }}>
                 <div style={{
                     width: '44px', height: '44px', borderRadius: '12px',
-                    background: 'linear-gradient(135deg,#6366f1,#8B5CF6)',
+                    background: 'linear-gradient(135deg,var(--primary),#8B5CF6)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
                 }}>
                     <BookmarkCheck size={22} />
                 </div>
                 <div>
-                    <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: '#0f172a' }}>Bookmarked Articles</h2>
-                    <p style={{ margin: 0, color: '#64748B', fontSize: '0.85rem' }}>{saved.length} saved article{saved.length !== 1 ? 's' : ''}</p>
+                    <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)' }}>Bookmarked Articles</h2>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>{saved.length} saved article{saved.length !== 1 ? 's' : ''}</p>
                 </div>
             </div>
 
@@ -62,7 +62,7 @@ export default function SavedArticles({ token }) {
             )}
 
             {saved.length === 0 && !error ? (
-                <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94A3B8' }}>
+                <div style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)' }}>
                     <BookmarkX size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
                     <p style={{ fontSize: '1rem', fontWeight: 500 }}>No bookmarked articles yet.</p>
                     <p style={{ fontSize: '0.85rem' }}>Click the 🔖 bookmark icon on any article to save it here.</p>
@@ -72,29 +72,35 @@ export default function SavedArticles({ token }) {
                     {saved.map(article => (
                         <div key={article.id} style={{
                             display: 'flex', alignItems: 'center', gap: '1rem',
-                            padding: '1.25rem 1.5rem', borderRadius: '14px', backgroundColor: '#fff',
-                            border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                            transition: 'box-shadow 0.2s'
+                            padding: '1.25rem 1.5rem', borderRadius: '14px', backgroundColor: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)',
+                            transition: 'box-shadow 0.2s, transform 0.2s'
                         }}
-                            onMouseOver={e => e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)'}
-                            onMouseOut={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'}
+                            onMouseOver={e => {
+                                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseOut={e => {
+                                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                e.currentTarget.style.transform = 'none';
+                            }}
                         >
                             <div style={{
                                 width: '40px', height: '40px', borderRadius: '10px',
-                                background: 'linear-gradient(135deg,#EEF2FF,#e0e7ff)',
+                                background: 'rgba(99, 102, 241, 0.1)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                flexShrink: 0, color: '#6366f1'
+                                flexShrink: 0, color: 'var(--primary)'
                             }}>
                                 <BookmarkCheck size={18} />
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{
-                                    fontWeight: 700, fontSize: '0.95rem', color: '#0f172a',
+                                    fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-main)',
                                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                                 }}>
                                     {article.article_title}
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#94A3B8', fontSize: '0.75rem', marginTop: '0.2rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.2rem' }}>
                                     <Clock size={11} />
                                     Saved {new Date(article.saved_at).toLocaleString()}
                                 </div>
@@ -107,7 +113,7 @@ export default function SavedArticles({ token }) {
                                     style={{
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         width: '34px', height: '34px', borderRadius: '8px',
-                                        backgroundColor: '#EEF2FF', color: '#6366f1', border: 'none',
+                                        backgroundColor: 'rgba(99, 102, 241, 0.1)', color: 'var(--primary)', border: 'none',
                                         cursor: 'pointer', textDecoration: 'none', transition: 'background 0.15s'
                                     }}
                                     title="Open Article"
@@ -119,7 +125,7 @@ export default function SavedArticles({ token }) {
                                     style={{
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         width: '34px', height: '34px', borderRadius: '8px',
-                                        backgroundColor: '#FEF2F2', color: '#DC2626', border: 'none',
+                                        backgroundColor: 'rgba(220, 38, 38, 0.1)', color: '#DC2626', border: 'none',
                                         cursor: 'pointer', transition: 'background 0.15s'
                                     }}
                                     title="Remove Bookmark"

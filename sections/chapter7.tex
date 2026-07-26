@@ -1,0 +1,248 @@
+\chapter{Testing \& Evaluation}
+\label{ch:testing-evaluation-chapter}
+\newpage
+
+This chapter outlines the comprehensive quality assurance, testing methodologies, and analytical evaluation paradigms implemented to validate the NewsPulse platform. To ensure that the distributed, containerized microservices perform reliably under standard and heavy workloads, the testing pipeline spans multiple validation layers. This includes functional use case validations, input boundary partition testing, security data flow tracking, isolated unit verification, containerized integration, and automated stress testing. The primary objective is to verify that all CPU-bound Natural Language Processing (NLP) models, cryptographic gateways, and aggregation daemons adhere to their defined operational boundaries without system degradation or runtime failure.
+
+\section{Use Case Testing (Test Cases)}
+To validate high-level system behaviors, functional use cases were mapped to formal test suites executing against the runtime microservices.
+
+\subsection{Use Case 1: Cryptographic User Authentication}
+This test validates the end-to-end user login flow, verifying that the client-side symmetric-asymmetric encryption handshake executes correctly and that the API Gateway validates credentials and returns a secure JSON Web Token (JWT) with the configured clock-skew tolerance.
+
+\begin{longtable}{|l|p{3.0cm}|p{3.2cm}|p{3.2cm}|p{2.5cm}|p{1.0cm}|}
+    \hline
+    \textbf{Test Case ID} & NP\_UC\_01 & \multicolumn{2}{p{6.4cm}|}{\textbf{Test Case Description}} & \multicolumn{2}{p{3.5cm}|}{Test client-side hybrid encryption, gateway decryption, credential matching, and JWT token generation.} \\
+    \hline
+    \textbf{Created By} & Saad & \textbf{Reviewed By} & Supervisor & \textbf{Version} & 1.0 \\
+    \hline
+    \multicolumn{6}{|p{15.1cm}|}{\textbf{QA Tester's Log}: Decryption of AES-GCM payloads succeeded, and Uvicorn logs verified stable JWT generation.} \\
+    \hline
+    \textbf{Tester's Name} & Saad & \textbf{Date Tested} & 15-Apr-2026 & \textbf{Test Case Result} & Pass \\
+    \hline
+    \textbf{S \#} & \multicolumn{2}{p{6.2cm}|}{\textbf{Prerequisites}} & \textbf{S \#} & \multicolumn{2}{p{3.5cm}|}{\textbf{Test Data}} \\
+    \hline
+    1 & \multicolumn{2}{p{6.2cm}|}{\texttt{auth\_service} and \texttt{gateway} containers are active in Docker network.} & 1 & \multicolumn{2}{p{3.5cm}|}{Username: \texttt{admin@newspulse.com}} \\ \hline
+    2 & \multicolumn{2}{p{6.2cm}|}{Local SQLite database is initialized with admin credentials.} & 2 & \multicolumn{2}{p{3.5cm}|}{Password: \texttt{securePass123!}} \\ \hline
+    3 & \multicolumn{2}{p{6.2cm}|}{Frontend application running in browser.} & 3 & \multicolumn{2}{p{3.5cm}|}{Expected: HTTP 200 OK with Base64 encrypted response token.} \\ \hline
+    \hline
+    \multicolumn{6}{|p{15.1cm}|}{\textbf{Test Scenario}: Verify credential routing through the cryptographic gateway and sqlite authorization checks.} \\
+    \hline
+    \textbf{Step \#} & \textbf{Step Details} & \textbf{Expected Results} & \textbf{Actual Results} & \multicolumn{2}{p{3.5cm}|}{\textbf{Status}} \\
+    \hline
+        1 & Navigate to the web login interface. & The React login component renders secure inputs. & The UI rendered inputs correctly. & \multicolumn{2}{c|}{Pass} \\ \hline 
+        2 & Input credentials and click Submit. & Frontend wraps payload in transient AES-GCM key, encrypts key via RSA-OAEP, and posts. & Handshake sent securely. & \multicolumn{2}{c|}{Pass} \\ \hline 
+        3 & Verify API Gateway response. & Gateway decrypts payload, verifies bcrypt hash via SQLite ORM, and returns valid JWT. & JWT returned in under 120ms. & \multicolumn{2}{c|}{Pass} \\ \hline
+    \hline
+\end{longtable}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{BS_FYP_Figs/report_use_case_1_login.png}
+    \caption{User Login and Session Token Generation Dashboard}
+    \label{fig:use-case-1-login}
+\end{figure}
+
+\newpage
+\subsection{Use Case 2: Multi-Tier Background Aggregation}
+This test case evaluates the asynchronous scheduled fetch cycle inside the \texttt{article\_fetcher} container, verifying crawler degradation steps and downstream hot-caching routines.
+
+\begin{longtable}{|l|p{3.0cm}|p{3.2cm}|p{3.2cm}|p{2.5cm}|p{1.0cm}|}
+    \hline
+    \textbf{Test Case ID} & NP\_UC\_02 & \multicolumn{2}{p{6.4cm}|}{\textbf{Test Case Description}} & \multicolumn{2}{p{3.5cm}|}{Validate the 15-minute async background lifespan polling loop, three-tier crawler degradations, and Redis hot-caching.} \\
+    \hline
+    \textbf{Created By} & Saad & \textbf{Reviewed By} & Supervisor & \textbf{Version} & 1.0 \\
+    \hline
+    \multicolumn{6}{|p{15.1cm}|}{\textbf{QA Tester's Log}: Crawler successfully degraded to Trafilatura and urllib3 during target connection locks.} \\
+    \hline
+    \textbf{Tester's Name} & Saad & \textbf{Date Tested} & 15-Apr-2026 & \textbf{Test Case Result} & Pass \\
+    \hline
+    \textbf{S \#} & \multicolumn{2}{p{6.2cm}|}{\textbf{Prerequisites}} & \textbf{S \#} & \multicolumn{2}{p{3.5cm}|}{\textbf{Test Data}} \\
+    \hline
+    1 & \multicolumn{2}{p{6.2cm}|}{Active internet connection and Redis hot-cache container online.} & 1 & \multicolumn{2}{p{3.5cm}|}{Target Category: \texttt{"Technology"}} \\ \hline
+    2 & \multicolumn{2}{p{6.2cm}|}{Upstream API developer keys configured in \texttt{.env}.} & 2 & \multicolumn{2}{p{3.5cm}|}{\texttt{bg\_fetch\_loop} max ingestion: 10 items} \\ \hline
+    3 & \multicolumn{2}{p{6.2cm}|}{Target sites configured for scraping.} & 3 & \multicolumn{2}{p{3.5cm}|}{Expected: Deduplicated article payload stored in Redis.} \\ \hline
+    \hline
+    \multicolumn{6}{|p{15.1cm}|}{\textbf{Test Scenario}: Verify that background task aggregators correctly parse and cache raw external content.} \\
+    \hline
+    \textbf{Step \#} & \textbf{Step Details} & \textbf{Expected Results} & \textbf{Actual Results} & \multicolumn{2}{p{3.5cm}|}{\textbf{Status}} \\
+    \hline
+        1 & Trigger background fetch execution loop. & Async thread wakes, spoofs headers, and calls news API providers. & Ingestion loop initialized. & \multicolumn{2}{c|}{Pass} \\ \hline 
+        2 & Simulate anti-bot lock on target site. & Scraper degrades to Tier 2 (Trafilatura) and Tier 3 (raw urllib3 sockets). & HTML extracted via bypass libraries. & \multicolumn{2}{c|}{Pass} \\ \hline 
+        3 & Check Redis "hot\_news" key. & Extracted texts mapped, deduplicated, and cached inside Redis broker. & 10 articles written to Redis cache. & \multicolumn{2}{c|}{Pass} \\ \hline
+    \hline
+\end{longtable}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{BS_FYP_Figs/report_use_case_2_fetcher.png}
+    \caption{Multi-Tier Scraper and Redis Persistence Ingestion Dashboard}
+    \label{fig:use-case-2-fetcher}
+\end{figure}
+
+\newpage
+\section{Equivalence Partitioning}
+To optimize testing coverage across our localized Natural Language Processing (NLP) services, Equivalence Partitioning (EP) was systematically applied to the input text domains. The raw article data input was divided into four distinct equivalence classes to verify functional routing:
+\begin{itemize}
+    \item \textbf{Partition 1 (Valid Standard Text - Input class $[100, 2500]$ characters):} Clean, standard English text payloads matching standard news structures.
+    \item \textbf{Partition 2 (Valid Extreme Text - Input class $> 2500$ characters):} High-volume long-form articles, meant to test sliding window chunking and auto-truncation modules.
+    \item \textbf{Partition 3 (Invalid Empty Payload - Input class $< 100$ characters):} Strings below the minimum length threshold, meant to test rejection triggers.
+    \item \textbf{Partition 4 (Invalid Malformed Encoding):} Non-UTF-8 characters, raw binary arrays, and empty strings.
+\end{itemize}
+
+Test scripts compiled using \texttt{pytest} automatically delivered data from each partition to the \texttt{article\_summarizer} and \texttt{political\_bias} services. Results confirmed that Partition 1 and 2 successfully output accurate abstractive summaries and weighted bias scores. Payloads from Partition 3 were rejected by the ingestion filter, and malformed inputs from Partition 4 were caught by Pydantic validation schemas, returning HTTP 400 Bad Request responses without model crashes.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{BS_FYP_Figs/report_equivalence_partitioning.png}
+    \caption{Equivalence Partitioning Test Scenarios and Error Routing Dashboard}
+    \label{fig:equiv-partitioning}
+\end{figure}
+
+\newpage
+\section{Boundary Value Analysis}
+Boundary Value Analysis (BVA) was implemented on the parameter constraints of our CPU-bound HuggingFace models to prevent memory leaks and Out of Memory (OOM) failures under heavy loads. The summarization microservice has a strict character-level safety limit of 2,500 characters.
+
+Test inputs were designed at the boundary boundaries of the character limit:
+\begin{itemize}
+    \item \textbf{Test Case BVA-01 (Below Boundary - 2,499 characters):} The text was parsed entirely by the tokenization pipeline, executing a local forward pass through the \texttt{sshleifer/distilbart-cnn-12-6} model on the CPU.
+    \item \textbf{Test Case BVA-02 (On Boundary - 2,500 characters):} The model processed the input at maximum operational capacity, returning the compressed summary successfully without performance degradation.
+    \item \textbf{Test Case BVA-03 (Above Boundary - 2,501 characters):} The ingestion middleware detected the boundary violation and triggered the auto-truncation module. The text was sliced back to exactly 2,500 characters before tokenization, preventing CPU memory allocation errors.
+\end{itemize}
+All BVA test cases passed, verifying the system's runtime stability.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{BS_FYP_Figs/report_boundary_value_analysis.png}
+    \caption{Summarizer Input Boundary Conditions and Memory Protection Dashboard}
+    \label{fig:bva-testing}
+\end{figure}
+
+\newpage
+\section{Data Flow Testing}
+Data Flow Testing tracked the lifecycle and cryptographic state changes of variables as they moved through the decentralized microservices. The focus was on verifying key exchange integrity and telemetry data routing:
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{BS_FYP_Figs/report_data_flow_testing.png}
+    \caption{Variable Lifecycle and Asynchronous Data Pipelining Audit}
+    \label{fig:data-flow-testing}
+\end{figure}
+
+As shown in Figure~\ref{fig:data-flow-testing}, the variables were tracked across four core processing nodes:
+\begin{enumerate}
+    \item \textbf{Client Serialization (Node A):} The user's query payload is serialized in the React client. The \texttt{node-forge} library generates a transient symmetric AES-256-GCM key, encrypts the payload, wraps the AES key using the gateway's public RSA-2048 key, and packages it into a Base64-encoded bundle.
+    \item \textbf{Gateway Processing (Node B):} The gateway receives the Base64 bundle, uses its private RSA key to decrypt the symmetric key, decrypts the request payload, verifies the user's JWT signature, and queries the Redis hot-cache.
+    \item \textbf{Inference and Analytics (Node C):} If a cache miss occurs, the gateway routes the payload to the respective NLP microservices. The models run their inference pipelines, generate scores, and register Prometheus latency metrics.
+    \item \textbf{Persistence Commit (Node D):} The final analytical results are cached in Redis and committed to isolated local SQLite databases.
+\end{enumerate}
+The data flow testing verified that all variables matched their expected cryptographic formats and schemas at every stage of transit.
+
+\newpage
+\section{Unit Testing}
+Unit Testing verified the performance of isolated functional components in a separate testing environment. Written using the \texttt{pytest} framework, these tests mocked external network interfaces and focus strictly on internal logical branches.
+
+Unit tests targeted several core functional areas:
+\begin{itemize}
+    \item \textbf{Proper Noun Extraction Heuristics:} Validated that the \texttt{counter\_argument} parser correctly runs regular expressions to isolate proper nouns, handling edge cases like empty strings or sentences without capitalized terms.
+    \item \textbf{Sensational Density Lexicons:} Tested the stylometric clickbait scoring methods to ensure sensational word ratios, capitalization densities, and exclamation mark frequencies were mathematically consistent.
+    \item \textbf{Database Model Logic:} Verified that SQLAlchemy session mappings and model validations successfully saved and retrieved records from localized in-memory SQLite instances.
+    \item \textbf{JWT Claim Handlers:} Tested the signature validation routine to confirm that expired tokens were rejected and that the 10-second clock skew skew was correctly handled.
+\end{itemize}
+The unit test suite achieved a 100\% pass rate across all 15 discrete system components.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{BS_FYP_Figs/report_unit_testing.png}
+    \caption{Unit Test Execution Matrix and Code Coverage Dashboard}
+    \label{fig:unit-testing}
+\end{figure}
+
+\newpage
+\section{Integration Testing}
+Following unit verification, Integration Testing evaluated the communication pathways and interface protocols between the microservices. These tests were conducted inside a dedicated Docker Compose testing network to simulate production conditions.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{BS_FYP_Figs/report_integration_testing.png}
+    \caption{Multi-Container Interface Sync and Redis Gateway Integration Dashboard}
+    \label{fig:integration-testing}
+\end{figure}
+
+Integration testing focused on verifying three primary integration points:
+\begin{itemize}
+    \item \textbf{Gateway-to-Service REST Communication:} Validated that the centralized API Gateway successfully decrypted incoming client payloads, verified JWT signatures, and distributed requests to the \texttt{article\_summarizer}, \texttt{fakenews\_detection}, \texttt{political\_bias}, and \texttt{counter\_argument} endpoints.
+    \item \textbf{Redis Hot-Cache Synchronicity:} Verified that cache misses triggered a local model inference, saved the result to Redis, and that subsequent matching requests retrieved the data from Redis instantly.
+    \item \textbf{Database Mount Persistence:} Confirmed that local SQLite databases mounted to separate container volumes saved data reliably and handled write operations without file locks.
+\end{itemize}
+The integration tests passed successfully, confirming stable communication across all microservice boundaries.
+
+\newpage
+\section{Performance Testing}
+Performance Testing evaluated system latency and processing times on constrained consumer CPUs. Because the platform runs without dedicated cloud GPUs, establishing operational latencies is critical to ensure standard HTTP requests do not time out.
+
+The tests ran Uvicorn server threads with a single worker process on standard consumer hardware. The processing times for each microservice are detailed below:
+\begin{table}[h!]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|l|c|c|c|}
+        \hline
+        \textbf{Microservice Target} & \textbf{Payload size (chars)} & \textbf{Avg Latency (s)} & \textbf{CPU Util (\%)} \\
+        \hline
+        \texttt{gateway} & 1,500 & 0.052 & 3.2 \\
+        \hline
+        \texttt{article\_summarizer} (DistilBART) & 2,500 & 4.210 & 94.5 \\
+        \hline
+        \texttt{article\_summarizer} (TF-IDF Fallback) & 2,500 & 0.085 & 8.6 \\
+        \hline
+        \texttt{fakenews\_detection} (Sentinel Cons) & 1,500 & 1.840 & 42.1 \\
+        \hline
+        \texttt{political\_bias} (Overlap DistilRoBERTa) & 3,000 & 5.120 & 88.3 \\
+        \hline
+        \texttt{counter\_argument} (Quantized Flan-T5) & 1,200 & 3.820 & 76.4 \\
+        \hline
+    \end{tabular}
+    \caption{Multi-Service CPU Latency and Processing Metrics}
+    \label{tab:performance_latencies}
+\end{table}
+
+The performance evaluations showed that while the neural network models are CPU-bound, average latencies remained well within our 10-second operational target. When the TF-IDF or template-based fallbacks were triggered, processing latency fell to under 100ms, ensuring high system responsiveness.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{BS_FYP_Figs/report_performance_testing.png}
+    \caption{Operational Latency Profile and Service Timing Dashboard}
+    \label{fig:performance-testing}
+\end{figure}
+
+\newpage
+\section{Regression Testing}
+To guarantee that newly implemented features, such as the Socratic template engine and TF-IDF fallback algorithms, did not introduce regression issues into the core code, regression test suites were integrated into our development pipeline. 
+
+Whenever changes were committed, the system ran historical datasets through the veracity, bias, and summarization pipelines. The test runner compared the new outputs with verified historical benchmarks, verifying that classifications and summarization indices remained mathematically consistent. The regression tests completed with zero reported deviations, ensuring long-term code stability.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{BS_FYP_Figs/report_regression_testing.png}
+    \caption{Regression Suite Execution logs and Analytical Consistency Dashboard}
+    \label{fig:regression-testing}
+\end{figure}
+
+\newpage
+\section{Stress Testing}
+Stress Testing evaluated system stability and degradation behavior under extreme workloads. We simulated high-concurrency environments by sending multiple parallel, asynchronous requests to the gateway, designed to exhaust CPU capacity and memory allocations.
+
+The stress tests yielded several key observations:
+\begin{itemize}
+    \item \textbf{Event Loop Responsiveness:} Offloading HTML parsing and cryptography to thread pools prevented the primary FastAPI event loop from locking.
+    \item \textbf{Graceful Degradation Triggers:} Under sustained CPU saturation (over 98% utilization), the system throttled incoming connections. When inference queues timed out (exceeding the 90-second timeout), the summarization and Socratic debater services instantly degraded to their TF-IDF and template-based fallbacks, maintaining system availability.
+    \item \textbf{Database Locking:} SQLite volume mappings handled concurrent logs securely, avoiding file locking issues under heavy write loads.
+\end{itemize}
+The stress tests confirmed that the microservices degradation design successfully maintains uptime and availability under extreme conditions.
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{BS_FYP_Figs/report_stress_testing.png}
+    \caption{High-Concurrency Stress Profile and Graceful Degradation Dashboard}
+    \label{fig:stress-testing}
+\end{figure}

@@ -30,9 +30,6 @@ function EditorialCard({ article, idx, onSelectArticle }) {
         <article 
             className={`editorial-card ${isHero && hasImage ? 'hero-article' : 'bottom-grid-item'} ${!hasImage ? 'text-only-card' : ''}`} 
             onClick={() => onSelectArticle(article)}
-            style={!hasImage ? {
-                borderLeft: `4px solid ${catCfg.color}`
-            } : {}}
         >
             {hasImage && (
                 <div
@@ -54,16 +51,20 @@ function EditorialCard({ article, idx, onSelectArticle }) {
                 {catCfg.emoji} {cat}
             </div>
             <h3 className="editorial-title">
-                {article.title || 'Untitled Article'}
+                {article.title?.trim() || 'Untitled Intel Report'}
             </h3>
             {isHero && hasImage && (
                 <p className="editorial-snippet">
-                    {article.text?.substring(0, 500)}...
+                    {article.text && article.text.trim().length > 30 
+                        ? (article.text.substring(0, 500) + '...') 
+                        : 'No further details extracted. Click to open and analyze full live intelligence report.'}
                 </p>
             )}
             {(!isHero || !hasImage) && (
                 <p className="editorial-snippet" style={{ WebkitLineClamp: 3 }}>
-                    {article.text?.substring(0, 150)}...
+                    {article.text && article.text.trim().length > 30 
+                        ? (article.text.substring(0, 180) + '...') 
+                        : 'No further details extracted. Click to open and analyze full live intelligence report.'}
                 </p>
             )}
             <div className="editorial-meta">
@@ -93,6 +94,9 @@ export default function NewsFeed({ onSelectArticle, externalQuery, token }) {
     // Track if this is an external query from the navbar
     const prevExternalQuery = useRef(externalQuery);
 
+    // Ref to hold the active search AbortController to prevent race conditions on tabs/queries
+    const activeAbortController = useRef(null);
+
     // Load user preferences once when token is available
     useEffect(() => {
         if (!token) return;
@@ -113,6 +117,13 @@ export default function NewsFeed({ onSelectArticle, externalQuery, token }) {
         })();
     }, [token]);
 
+    // Abort pending queries on component unmount
+    useEffect(() => {
+        return () => {
+            activeAbortController.current?.abort();
+        };
+    }, []);
+
     // Main fetch: load ALL hot_news articles from cache
     const fetchAllNews = async () => {
         setLoading(true);
@@ -122,7 +133,7 @@ export default function NewsFeed({ onSelectArticle, externalQuery, token }) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 30000);
         try {
-            const response = await secureGatewayCall('fetch_articles', { num_articles: 20 });
+            const response = await secureGatewayCall('fetch_articles', { num_articles: 20 }, null, controller.signal);
             if (Array.isArray(response)) {
                 setAllArticles(response);
             } else if (response && response.error) {
@@ -142,6 +153,12 @@ export default function NewsFeed({ onSelectArticle, externalQuery, token }) {
 
     // Live search for a specific category or external query
     const fetchLive = async (query) => {
+        // Abort any existing search/crawling request before launching a new one ⚡
+        activeAbortController.current?.abort();
+
+        const controller = new AbortController();
+        activeAbortController.current = controller;
+
         setSearching(true);
         setIsLongSearch(false);
         setLiveArticles(null);
@@ -158,14 +175,21 @@ export default function NewsFeed({ onSelectArticle, externalQuery, token }) {
         }, 30000);
 
         try {
-            const response = await secureGatewayCall('search_articles', { query, num_articles: 15 });
+            const response = await secureGatewayCall('search_articles', { query, num_articles: 15 }, null, controller.signal);
             if (Array.isArray(response)) {
                 setLiveArticles(response);
             }
-        } catch {}
+        } catch (err) {
+            if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
+                console.error("Live search failed:", err);
+            }
+        }
         finally { 
             clearTimeout(timer);
             clearTimeout(hardStop);
+            if (activeAbortController.current === controller) {
+                activeAbortController.current = null;
+            }
             setSearching(false); 
             setIsLongSearch(false);
         }

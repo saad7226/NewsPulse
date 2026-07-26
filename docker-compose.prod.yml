@@ -130,6 +130,22 @@ services:
         reservations:
           memory: 400M
 
+  # ─── Article Writer (Groq API — user article creation platform) ─────────────
+  article_writer:
+    image: ghcr.io/${GITHUB_USERNAME}/newspulse-article-writer:latest
+    container_name: newspulse-article-writer
+    env_file: .env.production
+    networks:
+      - news-network
+    restart: always
+    volumes:
+      - article_writer_data:/app   # persist SQLite article database
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 300M
+
   # ─── API Gateway (ONLY public API port) ────────────────────────────────────
   gateway:
     image: ghcr.io/${GITHUB_USERNAME}/newspulse-gateway:latest
@@ -144,6 +160,7 @@ services:
       - counter_argument
       - political_bias
       - fakenews_detection
+      - article_writer
       - redis
     restart: always
     healthcheck:
@@ -222,6 +239,7 @@ volumes:
   redis_data: {}
   prometheus_data: {}
   grafana_data: {}
+  article_writer_data: {}
 
 # ─── Network ──────────────────────────────────────────────────────────────────
 networks:

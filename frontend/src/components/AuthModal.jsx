@@ -69,8 +69,8 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(15, 23, 42, 0.6)',
-      backdropFilter: 'blur(4px)',
+      backgroundColor: 'rgba(11, 15, 25, 0.5)',
+      backdropFilter: 'blur(8px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -83,7 +83,10 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
         style={{
           width: '100%',
           maxWidth: '420px',
-          backgroundColor: '#fff',
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '20px',
+          boxShadow: 'var(--shadow-xl)',
           padding: '2rem',
           position: 'relative'
         }}
@@ -97,32 +100,35 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
             right: '1rem',
             background: 'none',
             border: 'none',
-            color: '#94a3b8',
+            color: 'var(--text-muted)',
             cursor: 'pointer',
-            padding: '0.2rem'
+            padding: '0.2rem',
+            transition: 'color 0.2s'
           }}
+          onMouseOver={e => e.currentTarget.style.color = 'var(--primary)'}
+          onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}
         >
           <X size={20} />
         </button>
 
         <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-main)', fontFamily: "'Playfair Display', serif" }}>
             {isLogin ? 'Welcome Back' : 'Create an Account'}
           </h2>
-          <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.4rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.4rem' }}>
             {isLogin ? 'Sign in to access Premium AI Analysis' : 'Join to unlock Live AI News Analysis'}
           </p>
         </div>
 
         {error && (
           <div style={{ 
-            backgroundColor: '#FEF2F2', 
-            color: '#DC2626', 
+            backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+            color: '#EF4444', 
             padding: '0.75rem', 
             borderRadius: '8px', 
             fontSize: '0.875rem', 
             marginBottom: '1rem',
-            border: '1px solid #FECACA'
+            border: '1px solid rgba(239, 68, 68, 0.2)'
           }}>
             {error}
           </div>
@@ -131,7 +137,7 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
           <div style={{ position: 'relative' }}>
-            <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input 
               type="text" 
               name="username"
@@ -146,7 +152,7 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
 
           {!isLogin && (
             <div style={{ position: 'relative' }}>
-              <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input 
                 type="email" 
                 name="email"
@@ -161,7 +167,7 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
           )}
 
           <div style={{ position: 'relative' }}>
-            <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <Lock size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input 
               type="password" 
               name="password"
@@ -185,9 +191,9 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
         </form>
 
         <div style={{ display: 'flex', alignItems: 'center', margin: '1.25rem 0' }}>
-            <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }}></div>
-            <span style={{ padding: '0 0.75rem', color: '#94A3B8', fontSize: '0.8rem', fontWeight: 600 }}>OR</span>
-            <div style={{ flex: 1, height: '1px', backgroundColor: '#E2E8F0' }}></div>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }}></div>
+            <span style={{ padding: '0 0.75rem', color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600 }}>OR</span>
+            <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }}></div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -197,7 +203,7 @@ export default function AuthModal({ onClose, onLoginSuccess }) {
             />
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: '#64748b' }}>
+        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
           {isLogin ? "Don't have an account? " : "Already have an account? "}
           <button 
             type="button"

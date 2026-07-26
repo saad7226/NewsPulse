@@ -119,15 +119,15 @@ export default function ProfileOverview({ user, token, onLogout, onProfileUpdate
     };
 
     return (
-        <div className="fade-in" style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#ffffff', width: '100%' }}>
+        <div className="fade-in" style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-color)', width: '100%' }}>
             {/* Header Area */}
-            <div style={{ padding: '4rem 2rem 3rem 2rem', textAlign: 'center', backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', position: 'relative' }}>
+            <div style={{ padding: '4rem 2rem 3rem 2rem', textAlign: 'center', backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', position: 'relative' }}>
                 
                 {/* Profile Edit Toggle */}
                 <div style={{ position: 'absolute', top: '2rem', right: '2rem' }}>
                     {isEditing ? (
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button className="btn" onClick={() => setIsEditing(false)} style={{ padding: '0.5rem 1rem', background: '#fff', color: '#64748b' }}>
+                            <button className="btn" onClick={() => setIsEditing(false)} style={{ padding: '0.5rem 1rem', background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
                                 <X size={16} /> Cancel
                             </button>
                             <button className="btn btn-primary" onClick={saveProfile} disabled={profileSaving} style={{ padding: '0.5rem 1rem' }}>
@@ -135,7 +135,7 @@ export default function ProfileOverview({ user, token, onLogout, onProfileUpdate
                             </button>
                         </div>
                     ) : (
-                        <button className="btn" onClick={() => setIsEditing(true)} style={{ padding: '0.5rem 1rem', background: '#fff' }}>
+                        <button className="btn" onClick={() => setIsEditing(true)} style={{ padding: '0.5rem 1rem', background: 'var(--bg-secondary)', color: 'var(--text-main)' }}>
                             <Edit2 size={16} /> Edit Profile
                         </button>
                     )}
@@ -145,9 +145,9 @@ export default function ProfileOverview({ user, token, onLogout, onProfileUpdate
                 <div 
                     onClick={triggerImageUpload}
                     style={{
-                        width: '120px', height: '120px', borderRadius: '50%', backgroundColor: '#EEF2FF',
+                        width: '120px', height: '120px', borderRadius: '50%', backgroundColor: 'var(--bg-color)',
                         color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        margin: '0 auto 1.5rem', border: '4px solid #ffffff',
+                        margin: '0 auto 1.5rem', border: '4px solid var(--border-color)',
                         boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
                         position: 'relative', overflow: 'hidden', cursor: isEditing ? 'pointer' : 'default',
                         backgroundImage: profileData.profile_picture ? `url(${profileData.profile_picture})` : 'none',
@@ -169,6 +169,38 @@ export default function ProfileOverview({ user, token, onLogout, onProfileUpdate
                     )}
                     <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
                 </div>
+
+                {/* Remove Picture Button if Editing and Picture exists */}
+                {isEditing && profileData.profile_picture && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setProfileData(prev => ({ ...prev, profile_picture: '' }));
+                            }}
+                            style={{
+                                backgroundColor: '#FEF2F2',
+                                color: '#DC2626',
+                                border: '1px solid #FECACA',
+                                padding: '0.35rem 0.85rem',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                borderRadius: '999px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                fontFamily: 'inherit',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem'
+                            }}
+                            onMouseOver={e => e.currentTarget.style.backgroundColor = '#FEE2E2'}
+                            onMouseOut={e => e.currentTarget.style.backgroundColor = '#FEF2F2'}
+                        >
+                            <X size={14} /> Remove Photo
+                        </button>
+                    </div>
+                )}
 
                 {/* Name & Bio */}
                 {isEditing ? (
@@ -193,20 +225,20 @@ export default function ProfileOverview({ user, token, onLogout, onProfileUpdate
                     </div>
                 ) : (
                     <>
-                        <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.25rem', fontFamily: 'Playfair Display, serif' }}>
+                        <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem', fontFamily: 'Playfair Display, serif' }}>
                             {profileData.full_name || user}
                         </h2>
-                        <p style={{ color: '#64748b', fontSize: '1rem', fontWeight: 500, marginBottom: '1.25rem' }}>@{user}</p>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', fontWeight: 500, marginBottom: '1.25rem' }}>@{user}</p>
                         
                         {profileData.bio && (
-                            <p style={{ maxWidth: '600px', margin: '0 auto 1.5rem auto', color: '#475569', lineHeight: 1.6, fontSize: '1.05rem' }}>
+                            <p style={{ maxWidth: '600px', margin: '0 auto 1.5rem auto', color: 'var(--text-label)', lineHeight: 1.6, fontSize: '1.05rem' }}>
                                 {profileData.bio}
                             </p>
                         )}
                     </>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', color: '#15803D', backgroundColor: '#DCFCE7', padding: '0.5rem 1.25rem', borderRadius: '999px', width: 'fit-content', margin: '1rem auto 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', alignItems: 'center', color: 'var(--success-text)', backgroundColor: 'var(--success-bg)', padding: '0.5rem 1.25rem', borderRadius: '999px', width: 'fit-content', margin: '1rem auto 0', transition: 'all 0.3s ease' }}>
                     <ShieldCheck size={18} />
                     <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Premium AI Access Active</span>
                 </div>
@@ -222,13 +254,13 @@ export default function ProfileOverview({ user, token, onLogout, onProfileUpdate
                             <Tag size={20} color="#fff" />
                         </div>
                         <div>
-                            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>News Feed Preferences</h3>
-                            <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b' }}>Select categories to personalize your default feed</p>
+                            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-main)' }}>News Feed Preferences</h3>
+                            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)' }}>Select categories to personalize your default feed</p>
                         </div>
                     </div>
 
                     {prefLoading ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '2rem 0', color: '#94a3b8' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '2rem 0', color: 'var(--text-muted)' }}>
                             <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
                             <span>Loading preferences…</span>
                         </div>
@@ -245,21 +277,21 @@ export default function ProfileOverview({ user, token, onLogout, onProfileUpdate
                                                 position: 'relative',
                                                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                                                 gap: '0.5rem', padding: '1rem', borderRadius: '14px',
-                                                border: `2px solid ${active ? cat.color : '#E2E8F0'}`,
-                                                background: active ? `${cat.color}18` : '#F8FAFC',
+                                                border: `2px solid ${active ? cat.color : 'var(--border-color)'}`,
+                                                background: active ? `${cat.color}18` : 'var(--bg-secondary)',
                                                 cursor: 'pointer', transition: 'all 0.2s',
                                                 fontFamily: 'inherit',
                                                 transform: active ? 'scale(1.03)' : 'scale(1)',
                                                 boxShadow: active ? `0 4px 14px ${cat.color}30` : 'none',
                                             }}
                                             onMouseOver={e => { if (!active) { e.currentTarget.style.borderColor = cat.color; e.currentTarget.style.background = `${cat.color}10`; }}}
-                                            onMouseOut={e => { if (!active) { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.background = '#F8FAFC'; }}}
+                                            onMouseOut={e => { if (!active) { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'var(--bg-secondary)'; }}}
                                         >
                                             <span style={{ fontSize: '1.75rem' }}>{cat.emoji}</span>
-                                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: active ? cat.color : '#64748b', letterSpacing: '0.02em' }}>{cat.id}</span>
+                                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: active ? cat.color : 'var(--text-muted)', letterSpacing: '0.02em' }}>{cat.id}</span>
                                             {active && (
                                                 <div style={{ position: 'absolute', top: '-7px', right: '-7px' }}>
-                                                    <CheckCircle size={18} color={cat.color} style={{ background: '#fff', borderRadius: '50%' }} />
+                                                    <CheckCircle size={18} color={cat.color} style={{ background: 'var(--bg-color)', borderRadius: '50%' }} />
                                                 </div>
                                             )}
                                         </button>
@@ -288,7 +320,7 @@ export default function ProfileOverview({ user, token, onLogout, onProfileUpdate
                     )}
                 </div>
 
-                <hr style={{ border: 'none', borderTop: '1px solid #E2E8F0', margin: '0 0 2rem 0' }} />
+                <hr style={{ border: 'none', borderTop: '1px solid var(--border-color)', margin: '0 0 2rem 0' }} />
 
                 <button
                     onClick={onLogout}

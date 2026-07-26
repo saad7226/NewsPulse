@@ -277,6 +277,109 @@ async def secure_process(request: Request):
                                            json={"token": token, "admin_id": params.get("admin_id")},
                                            timeout=10.0)
                 resp.raise_for_status()
+            # ─── Article Writer Actions ────────────────────────────────────────────
+            elif action == "create_article":
+                if not user:
+                    return {"payload": encrypt_response({"error": "Unauthorized"})}
+                params["author_id"] = str(user.get("sub", ""))
+                params["author_name"] = str(user.get("username", ""))
+                params["author_username"] = str(user.get("username", ""))
+                resp = await client.post("http://article_writer:8000/articles", json=params, timeout=30.0)
+                resp.raise_for_status()
+            elif action == "update_article":
+                if not user:
+                    return {"payload": encrypt_response({"error": "Unauthorized"})}
+                article_id = params.pop("article_id")
+                author_id = str(user.get("sub", ""))
+                resp = await client.put(
+                    f"http://article_writer:8000/articles/{article_id}",
+                    json=params,
+                    params={"author_id": author_id},
+                    timeout=30.0
+                )
+                resp.raise_for_status()
+            elif action == "delete_article":
+                if not user:
+                    return {"payload": encrypt_response({"error": "Unauthorized"})}
+                article_id = params.get("article_id")
+                author_id = str(user.get("sub", ""))
+                resp = await client.request(
+                    "DELETE",
+                    f"http://article_writer:8000/articles/{article_id}",
+                    params={"author_id": author_id},
+                    timeout=15.0
+                )
+                resp.raise_for_status()
+            elif action == "submit_article":
+                if not user:
+                    return {"payload": encrypt_response({"error": "Unauthorized"})}
+                article_id = params.get("article_id")
+                author_id = str(user.get("sub", ""))
+                resp = await client.post(
+                    f"http://article_writer:8000/articles/{article_id}/submit",
+                    params={"author_id": author_id},
+                    timeout=15.0
+                )
+                resp.raise_for_status()
+            elif action == "get_article":
+                article_id = params.get("article_id")
+                requester_id = str(user.get("sub", "")) if user else None
+                req_params = {}
+                if requester_id:
+                    req_params["requester_id"] = requester_id
+                resp = await client.get(
+                    f"http://article_writer:8000/articles/{article_id}",
+                    params=req_params,
+                    timeout=15.0
+                )
+                resp.raise_for_status()
+            elif action == "get_my_articles":
+                if not user:
+                    return {"payload": encrypt_response({"error": "Unauthorized"})}
+                user_id = str(user.get("sub", ""))
+                resp = await client.get(
+                    f"http://article_writer:8000/my_articles/{user_id}",
+                    timeout=15.0
+                )
+                resp.raise_for_status()
+            elif action == "get_published_articles":
+                resp = await client.get(
+                    "http://article_writer:8000/published",
+                    params={k: v for k, v in params.items() if v is not None},
+                    timeout=15.0
+                )
+                resp.raise_for_status()
+            elif action == "ai_write_assist":
+                if not user:
+                    return {"payload": encrypt_response({"error": "Unauthorized. AI writing requires login."})}
+                params["author_id"] = str(user.get("sub", ""))
+                resp = await client.post(
+                    "http://article_writer:8000/ai_assist",
+                    json=params,
+                    timeout=60.0
+                )
+                resp.raise_for_status()
+            elif action == "admin_get_pending_articles":
+                if not user or not user.get("is_admin"):
+                    return {"payload": encrypt_response({"error": "Admin privileges required"})}
+                resp = await client.get("http://article_writer:8000/admin/pending", timeout=15.0)
+                resp.raise_for_status()
+            elif action == "admin_approve_article":
+                if not user or not user.get("is_admin"):
+                    return {"payload": encrypt_response({"error": "Admin privileges required"})}
+                article_id = params.get("article_id")
+                resp = await client.post(f"http://article_writer:8000/admin/{article_id}/approve", timeout=15.0)
+                resp.raise_for_status()
+            elif action == "admin_reject_article":
+                if not user or not user.get("is_admin"):
+                    return {"payload": encrypt_response({"error": "Admin privileges required"})}
+                article_id = params.pop("article_id")
+                resp = await client.post(
+                    f"http://article_writer:8000/admin/{article_id}/reject",
+                    json=params,
+                    timeout=15.0
+                )
+                resp.raise_for_status()
             else:
                 return {"payload": encrypt_response({"error": "Invalid action"})}
 

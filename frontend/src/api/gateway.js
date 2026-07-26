@@ -7,7 +7,7 @@ const API_BASE = import.meta.env.PROD ? '/api' : `http://${window.location.hostn
 /**
  * Creates an encrypted request, sends it to the Gateway, and decrypts the response.
  */
-export async function secureGatewayCall(action, params = {}, token = null) {
+export async function secureGatewayCall(action, params = {}, token = null, signal = null) {
     try {
         const payload = {
             action,
@@ -18,7 +18,8 @@ export async function secureGatewayCall(action, params = {}, token = null) {
         const encryptedData = encryptPayload(payload);
 
         const res = await axios.post(`${API_BASE}/process`, { payload: encryptedData }, {
-            timeout: 240000 // 240 seconds — matches gateway's backend timeout for CPU-heavy inference
+            timeout: 240000, // 240 seconds — matches gateway's backend timeout for CPU-heavy inference
+            signal: signal
         });
 
         if (res.data?.payload) {

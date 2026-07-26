@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ExternalLink, Clock, BookOpen, Bookmark, Download, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ArrowLeft, ExternalLink, Clock, BookOpen, Bookmark, Download, ShieldCheck, ShieldAlert, ShieldX, ArrowUp, Home } from 'lucide-react';
 import AnalysisPanels from './AnalysisPanels';
 import { secureGatewayCall } from '../api/gateway';
 
@@ -79,7 +80,7 @@ function TrustGauge({ score, ready }) {
                 <path
                     d={describeArc(startAngle, endAngle)}
                     fill="none"
-                    stroke="#E2E8F0"
+                    stroke="var(--border-color)"
                     strokeWidth={stroke}
                     strokeLinecap="round"
                 />
@@ -95,10 +96,10 @@ function TrustGauge({ score, ready }) {
                     style={{ transition: 'stroke-dashoffset 1.2s cubic-bezier(0.25,1,0.5,1), stroke 0.6s ease', transformOrigin: `${cx}px ${cy}px` }}
                 />
                 {/* Score number */}
-                <text x={cx} y={cy + 8} textAnchor="middle" fontFamily="Inter, system-ui" fontWeight={800} fontSize={38} fill={ready ? color : '#CBD5E1'}>
+                <text x={cx} y={cy + 8} textAnchor="middle" fontFamily="Inter, system-ui" fontWeight={800} fontSize={38} fill={ready ? color : 'var(--text-muted)'}>
                     {ready ? score : '—'}
                 </text>
-                <text x={cx} y={cy + 32} textAnchor="middle" fontFamily="Inter, system-ui" fontWeight={700} fontSize={13} fill="#94A3B8">
+                <text x={cx} y={cy + 32} textAnchor="middle" fontFamily="Inter, system-ui" fontWeight={700} fontSize={13} fill="var(--text-muted)">
                     out of 100
                 </text>
                 {/* Tick labels */}
@@ -108,21 +109,21 @@ function TrustGauge({ score, ready }) {
                     const offset = 22;
                     const tx = cx + (radius + offset) * Math.cos(toRad(angle));
                     const ty = cy + (radius + offset) * Math.sin(toRad(angle));
-                    return <text key={v} x={tx} y={ty + 5} textAnchor="middle" fontFamily="Inter" fontSize={11} fontWeight={700} fill="#94A3B8">{v}</text>;
+                    return <text key={v} x={tx} y={ty + 5} textAnchor="middle" fontFamily="Inter" fontSize={11} fontWeight={700} fill="var(--text-muted)">{v}</text>;
                 })}
             </svg>
 
             {/* Verdict pill */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.55rem 1.25rem', borderRadius: '999px', backgroundColor: ready ? `${color}18` : '#F1F5F9', border: `2px solid ${ready ? `${color}50` : '#E2E8F0'}`, transition: 'all 0.6s ease' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.55rem 1.25rem', borderRadius: '999px', backgroundColor: ready ? `${color}18` : 'var(--bg-secondary)', border: `2px solid ${ready ? `${color}50` : 'var(--border-color)'}`, transition: 'all 0.6s ease' }}>
                 {VerdictIcon && <VerdictIcon size={17} color={color} />}
-                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: ready ? color : '#94A3B8', letterSpacing: '0.01em' }}>{label}</span>
+                <span style={{ fontSize: '0.92rem', fontWeight: 700, color: ready ? color : 'var(--text-muted)', letterSpacing: '0.01em' }}>{label}</span>
             </div>
 
             {/* Legend */}
             {ready && (
                 <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.25rem' }}>
                     {[{ c: '#10B981', t: '85–100 Credible' }, { c: '#F59E0B', t: '65–84 Reliable' }, { c: '#F97316', t: '40–64 Caution' }, { c: '#EF4444', t: '0–39 Low' }].map(({ c, t }) => (
-                        <span key={t} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+                        <span key={t} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                             <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: c, display: 'inline-block' }} />{t}
                         </span>
                     ))}
@@ -144,11 +145,29 @@ export default function ArticleDetail({
     onAnalysisComplete
 }) {
     const [hasImage, setHasImage] = useState(!!article?.image_url);
+    const [showFloatingDock, setShowFloatingDock] = useState(false);
 
     useEffect(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const mainElement = document.querySelector('main');
+        if (mainElement) {
+            mainElement.scrollTo({ top: 0, behavior: 'smooth' });
+        }
         setHasImage(!!article?.image_url);
+
+        // Slide in the floating dock with a stunning scale animation on load, then keep it visible permanently
+        setShowFloatingDock(false);
+        const timer = setTimeout(() => {
+            setShowFloatingDock(true);
+        }, 200);
+        return () => clearTimeout(timer);
     }, [article]);
+
+    const scrollToTop = () => {
+        const mainElement = document.querySelector('main');
+        if (mainElement) {
+            mainElement.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
 
     const [bookmarked, setBookmarked] = useState(false);
 
@@ -225,21 +244,21 @@ export default function ArticleDetail({
 
             {/* ── TRUST SCORE METER ── */}
             <div style={{
-                background: 'linear-gradient(135deg, #f8faff 0%, #ffffff 100%)',
-                border: '1px solid rgba(99,102,241,0.15)',
+                background: 'var(--card-gradient)',
+                border: '1px solid var(--border-color)',
                 borderRadius: '20px',
                 padding: '2rem 2.5rem',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                boxShadow: '0 4px 24px -4px rgba(99,102,241,0.10)',
+                boxShadow: 'var(--shadow-md)',
                 gap: '0.5rem',
             }}>
                 <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: '0 0 0.25rem', letterSpacing: '-0.01em' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 0.25rem', letterSpacing: '-0.01em' }}>
                         Overall Trust Score
                     </h3>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#94A3B8', fontWeight: 500 }}>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                         {analysisReady
                             ? 'Aggregated from Fake News Detection & Political Bias Analysis'
                             : 'Run AI analysis below to calculate the Trust Score'}
@@ -247,7 +266,7 @@ export default function ArticleDetail({
                 </div>
                 <TrustGauge score={trustScore} ready={analysisReady} />
                 {!analysisReady && (
-                    <p style={{ fontSize: '0.8rem', color: '#CBD5E1', fontWeight: 500, textAlign: 'center', marginTop: '-0.25rem' }}>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, textAlign: 'center', marginTop: '-0.25rem' }}>
                         Score updates automatically once analysis completes ↓
                     </p>
                 )}
@@ -289,9 +308,9 @@ export default function ArticleDetail({
 
             {/* Reading View */}
             <article className="card" style={{
-                padding: '3rem 4rem', borderRadius: '16px', backgroundColor: '#ffffff',
-                boxShadow: '0 10px 40px -10px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.02)',
-                border: '1px solid rgba(226, 232, 240, 0.8)'
+                padding: '3rem 4rem', borderRadius: '16px', backgroundColor: 'var(--bg-secondary)',
+                boxShadow: 'var(--shadow-md)',
+                border: '1px solid var(--border-color)'
             }}>
                 {article.source && (() => {
                     let displaySource = article.source;
@@ -307,10 +326,10 @@ export default function ArticleDetail({
                         </div>
                     );
                 })()}
-                <h1 style={{ fontSize: '2.5rem', fontWeight: 800, lineHeight: 1.25, marginBottom: '1.5rem', color: '#0f172a', letterSpacing: '-0.02em', fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <h1 style={{ fontSize: '2.5rem', fontWeight: 800, lineHeight: 1.25, marginBottom: '1.5rem', color: 'var(--text-main)', letterSpacing: '-0.02em', fontFamily: 'Inter, system-ui, sans-serif' }}>
                     {article.title}
                 </h1>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '3rem', paddingBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.95rem', fontWeight: 500 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '3rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: 500 }}>
                     {article.published && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Clock size={16} />
@@ -337,7 +356,7 @@ export default function ArticleDetail({
                 </div>
                 
                 {hasImage && (
-                    <div style={{ marginBottom: '2.5rem', borderRadius: '12px', overflow: 'hidden', display: 'flex', justifyContent: 'center', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <div style={{ marginBottom: '2.5rem', borderRadius: '12px', overflow: 'hidden', display: 'flex', justifyContent: 'center', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)' }}>
                         <img 
                             src={article.image_url} 
                             alt={article.title} 
@@ -347,7 +366,7 @@ export default function ArticleDetail({
                     </div>
                 )}
                 
-                <div className="article-content" style={{ fontSize: '1.15rem', lineHeight: 1.85, color: '#334155', whiteSpace: 'pre-wrap', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                <div className="article-content" style={{ fontSize: '1.15rem', lineHeight: 1.85, color: 'var(--text-main)', whiteSpace: 'pre-wrap', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                     {renderHighlightedText(article.text)}
                 </div>
             </article>
@@ -355,10 +374,10 @@ export default function ArticleDetail({
             {/* Analysis Tools */}
             <div style={{ marginTop: '3rem', padding: '0 1rem' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>
+                    <h2 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
                         Intelligence Dashboard
                     </h2>
-                    <p style={{ color: '#64748b', fontSize: '1.05rem', marginTop: '0.5rem' }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', marginTop: '0.5rem' }}>
                         Local Edge NLP Analysis for this content
                     </p>
                 </div>
@@ -375,6 +394,100 @@ export default function ArticleDetail({
                     onAnalysisComplete={onAnalysisComplete}
                 />
             </div>
+
+            {/* ── STUNNING FLOATING CONTROL DOCK ── */}
+            {createPortal(
+                <div style={{
+                    position: 'fixed',
+                    bottom: '2rem',
+                    right: '2.5rem',
+                    zIndex: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    background: 'var(--bg-secondary)',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '30px',
+                    padding: '0.5rem 0.8rem',
+                    boxShadow: 'var(--shadow-xl)',
+                    transform: showFloatingDock ? 'translateY(0) scale(1)' : 'translateY(80px) scale(0.8)',
+                    opacity: showFloatingDock ? 1 : 0,
+                    pointerEvents: showFloatingDock ? 'auto' : 'none',
+                    transition: 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease',
+                }}>
+                    {/* Back to Feed button */}
+                    <button 
+                        onClick={onBack}
+                        title="Back to News Feed"
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '0.5rem',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s',
+                        }}
+                        onMouseOver={e => { e.currentTarget.style.background = 'var(--bg-color)'; e.currentTarget.style.color = 'var(--primary)'; }}
+                        onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                    >
+                        <Home size={18} />
+                    </button>
+
+                    {/* Bookmark/Save button */}
+                    <button 
+                        onClick={handleBookmark}
+                        title={bookmarked ? "Unsave Article" : "Save Article"}
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: bookmarked ? 'var(--primary)' : 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '0.5rem',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s',
+                        }}
+                        onMouseOver={e => { e.currentTarget.style.background = 'var(--bg-color)'; if(!bookmarked) e.currentTarget.style.color = 'var(--primary)'; }}
+                        onMouseOut={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = bookmarked ? 'var(--primary)' : 'var(--text-muted)'; }}
+                    >
+                        <Bookmark size={18} fill={bookmarked ? 'var(--primary)' : 'none'} />
+                    </button>
+
+                    {/* Vertical Divider */}
+                    <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--border-color)', margin: '0 4px' }} />
+
+                    {/* Scroll to Top button */}
+                    <button 
+                        onClick={scrollToTop}
+                        title="Scroll to Top of Article"
+                        style={{
+                            background: 'var(--primary)',
+                            border: 'none',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            padding: '0.5rem',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s',
+                        }}
+                        onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(11, 126, 226, 0.4)'; }}
+                        onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    >
+                        <ArrowUp size={18} />
+                    </button>
+                </div>,
+                document.body
+            )}
         </div>
     );
 }

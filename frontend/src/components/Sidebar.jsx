@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, LogIn, Clock, Activity, ArrowLeft, BarChart, Server, Bookmark, ShieldCheck, Sun, Moon, Lock, Microscope } from 'lucide-react';
+import { User, LogIn, Clock, Activity, ArrowLeft, BarChart, Server, Bookmark, ShieldCheck, Sun, Moon, Lock, Microscope, PenLine, Newspaper } from 'lucide-react';
 
 export default function Sidebar({ 
     user, 
@@ -16,6 +16,8 @@ export default function Sidebar({
     onNavigateAdmin,
     onNavigateSaved,
     onNavigateAnalyze,
+    onNavigateWriter,
+    onNavigateCommunity,
     onLoginClick,
     onAdminLoginClick,
     currentView,
@@ -100,6 +102,39 @@ export default function Sidebar({
                 >
                     <Microscope size={15} /> Analyze Article
                 </button>
+
+                <button
+                    onClick={onNavigateCommunity}
+                    style={{
+                        ...navBtnStyle(currentView === 'community'),
+                        background: currentView === 'community' ? 'rgba(245,158,11,0.12)' : 'transparent',
+                        border: `1px solid ${currentView === 'community' ? 'rgba(245,158,11,0.35)' : 'var(--border-color)'}`,
+                        color: currentView === 'community' ? '#f59e0b' : 'var(--text-label)',
+                    }}
+                    onMouseOver={e => { if(currentView !== 'community') { e.currentTarget.style.background = 'rgba(245,158,11,0.07)'; e.currentTarget.style.color = '#f59e0b'; } }}
+                    onMouseOut={e => { if(currentView !== 'community') { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-label)'; } }}
+                    title="Browse articles written by community members"
+                >
+                    <Newspaper size={15} /> Community
+                </button>
+
+                {user && (
+                    <button
+                        onClick={onNavigateWriter}
+                        style={{
+                            ...navBtnStyle(currentView === 'writer'),
+                            background: currentView === 'writer' ? 'rgba(16,185,129,0.12)' : 'var(--gradient-primary)',
+                            border: currentView === 'writer' ? '1px solid rgba(16,185,129,0.35)' : 'none',
+                            color: '#fff',
+                            boxShadow: currentView === 'writer' ? 'none' : '0 4px 12px rgba(79,70,229,0.3)',
+                        }}
+                        onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(79,70,229,0.4)'; }}
+                        onMouseOut={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(79,70,229,0.3)'; }}
+                        title="Write and publish your articles"
+                    >
+                        <PenLine size={15} /> ✍️ Write Article
+                    </button>
+                )}
 
                 {/* System Matrix — ONLY for verified admin users */}
                 {isAdmin && (

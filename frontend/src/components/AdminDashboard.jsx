@@ -3,7 +3,7 @@ import { secureGatewayCall } from '../api/gateway';
 import {
     Activity, Cpu, ShieldCheck, BarChart2, Clock, RefreshCw, Wifi, WifiOff,
     TrendingUp, Zap, Brain, Scale, AlertTriangle, Swords, AlignLeft,
-    Users, UserCheck, UserX, Trash2, CheckCircle
+    Users, UserCheck, UserX, Trash2, CheckCircle, PenLine, Eye, X
 } from 'lucide-react';
 
 const REFRESH_INTERVAL_MS = 15000;
@@ -28,6 +28,13 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
     const [pendingAdmins, setPendingAdmins] = useState([]);
     const [approvedAdmins, setApprovedAdmins] = useState([]);
     const [adminLoading, setAdminLoading] = useState(false);
+
+    // Article Moderation State
+    const [pendingArticles, setPendingArticles] = useState([]);
+    const [articlesLoading, setArticlesLoading] = useState(false);
+    const [rejectingId, setRejectingId] = useState(null);
+    const [rejectReason, setRejectReason] = useState('');
+    const [previewArticle, setPreviewArticle] = useState(null);
 
     const fetchMetrics = useCallback(async () => {
         setPulse(true);
@@ -76,7 +83,33 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
 
     useEffect(() => {
         if (activeTab === 'management') fetchAdmins();
+        if (activeTab === 'articles') fetchPendingArticles();
     }, [activeTab, fetchAdmins]);
+
+    const fetchPendingArticles = useCallback(async () => {
+        setArticlesLoading(true);
+        const result = await secureGatewayCall('admin_get_pending_articles', {}, token);
+        if (Array.isArray(result)) setPendingArticles(result);
+        setArticlesLoading(false);
+    }, [token]);
+
+    const handleApproveArticle = async (id) => {
+        const result = await secureGatewayCall('admin_approve_article', { article_id: id }, token);
+        if (result?.success) setPendingArticles(prev => prev.filter(a => a.id !== id));
+    };
+
+    const handleRejectArticle = async (id) => {
+        if (!rejectReason.trim() || rejectReason.trim().length < 10) {
+            alert('Please provide a rejection reason (min 10 characters).');
+            return;
+        }
+        const result = await secureGatewayCall('admin_reject_article', { article_id: id, reason: rejectReason }, token);
+        if (result?.success) {
+            setPendingArticles(prev => prev.filter(a => a.id !== id));
+            setRejectingId(null);
+            setRejectReason('');
+        }
+    };
 
     const handleApproveAdmin = async (adminId) => {
         try {
@@ -153,19 +186,32 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
                 )}
             </div>
 
-            {/* ── Tabs (Super Admin Only) ── */}
-            {isSuperAdmin && (
-                <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #E2E8F0', marginBottom: '2rem' }}>
-                    <button onClick={() => setActiveTab('matrix')}
-                        style={{
-                            padding: '0.75rem 1rem', background: 'none', border: 'none',
-                            borderBottom: activeTab === 'matrix' ? '2px solid #6366f1' : '2px solid transparent',
-                            color: activeTab === 'matrix' ? '#6366f1' : '#64748b',
-                            fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem',
-                            display: 'flex', alignItems: 'center', gap: '0.5rem'
-                        }}>
-                        <Activity size={18} /> System Matrix
-                    </button>
+            {/* ── Tabs ── */}
+            <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #E2E8F0', marginBottom: '2rem' }}>
+                <button onClick={() => setActiveTab('matrix')}
+                    style={{
+                        padding: '0.75rem 1rem', background: 'none', border: 'none',
+                        borderBottom: activeTab === 'matrix' ? '2px solid #6366f1' : '2px solid transparent',
+                        color: activeTab === 'matrix' ? '#6366f1' : '#64748b',
+                        fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem',
+                        display: 'flex', alignItems: 'center', gap: '0.5rem'
+                    }}>
+                    <Activity size={18} /> System Matrix
+                </button>
+                <button onClick={() => setActiveTab('articles')}
+                    style={{
+                        padding: '0.75rem 1rem', background: 'none', border: 'none',
+                        borderBottom: activeTab === 'articles' ? '2px solid #10b981' : '2px solid transparent',
+                        color: activeTab === 'articles' ? '#10b981' : '#64748b',
+                        fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem',
+                        display: 'flex', alignItems: 'center', gap: '0.5rem'
+                    }}>
+                    <PenLine size={18} /> Article Review
+                    {pendingArticles.length > 0 && activeTab !== 'articles' && (
+                        <span style={{ background: '#f59e0b', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '999px', marginLeft: '0.25rem' }}>{pendingArticles.length}</span>
+                    )}
+                </button>
+                {isSuperAdmin && (
                     <button onClick={() => setActiveTab('management')}
                         style={{
                             padding: '0.75rem 1rem', background: 'none', border: 'none',
@@ -179,11 +225,153 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
                             <span style={{ background: '#EF4444', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '999px', marginLeft: '0.25rem' }}>{pendingAdmins.length}</span>
                         )}
                     </button>
+                )}
+            </div>
+
+            {/* ── Tab Content: Article Review ── */}
+            {activeTab === 'articles' && (
+                <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                        <h2 style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)', fontSize: '1.1rem' }}>
+                            📝 Articles Awaiting Review ({pendingArticles.length})
+                        </h2>
+                        <button onClick={fetchPendingArticles} style={{
+                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                            padding: '0.4rem 0.8rem', borderRadius: '8px',
+                            border: '1px solid var(--border-color)', background: 'transparent',
+                            cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit', fontSize: '0.8rem'
+                        }}>
+                            <RefreshCw size={13} /> Refresh
+                        </button>
+                    </div>
+
+                    {articlesLoading ? (
+                        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading pending articles...</div>
+                    ) : pendingArticles.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                            <CheckCircle size={40} style={{ color: '#10b981', marginBottom: '1rem' }} />
+                            <p style={{ fontWeight: 600 }}>All clear! No articles waiting for review.</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {pendingArticles.map(article => (
+                                <div key={article.id} style={{
+                                    padding: '1.25rem', borderRadius: '14px',
+                                    border: '1px solid rgba(245,158,11,0.3)',
+                                    background: 'rgba(245,158,11,0.04)'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+                                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', padding: '0.15rem 0.5rem', borderRadius: '10px', border: '1px solid rgba(245,158,11,0.25)' }}>
+                                                    ⏳ Pending Review
+                                                </span>
+                                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: 'var(--bg-primary)', padding: '0.15rem 0.5rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                                                    {article.category}
+                                                </span>
+                                                {article.ai_assisted && <span style={{ fontSize: '0.68rem', color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', padding: '0.15rem 0.4rem', borderRadius: '8px' }}>✨ AI</span>}
+                                            </div>
+                                            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>{article.title}</h3>
+                                            <p style={{ margin: '0.3rem 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                By <strong>{article.author_name}</strong> · {new Date(article.updated_at).toLocaleDateString()} · {Math.max(1, Math.round((article.content?.split(/\s+/).length || 0) / 200))} min read
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {article.excerpt && (
+                                        <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{article.excerpt}</p>
+                                    )}
+
+                                    {/* Content preview */}
+                                    {previewArticle === article.id ? (
+                                        <div style={{
+                                            padding: '0.75rem', borderRadius: '8px',
+                                            background: 'var(--bg-primary)', border: '1px solid var(--border-color)',
+                                            maxHeight: '200px', overflow: 'auto',
+                                            fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap',
+                                            color: 'var(--text-primary)', marginBottom: '0.75rem'
+                                        }}>
+                                            {article.content}
+                                        </div>
+                                    ) : (
+                                        <button onClick={() => setPreviewArticle(article.id)} style={{
+                                            display: 'flex', alignItems: 'center', gap: '0.3rem',
+                                            border: 'none', background: 'transparent', cursor: 'pointer',
+                                            color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: '0.75rem',
+                                            fontFamily: 'inherit', padding: 0
+                                        }}>
+                                            <Eye size={12} /> Read full article
+                                        </button>
+                                    )}
+
+                                    {/* Reject reason input */}
+                                    {rejectingId === article.id && (
+                                        <div style={{ marginBottom: '0.75rem' }}>
+                                            <textarea
+                                                value={rejectReason}
+                                                onChange={e => setRejectReason(e.target.value)}
+                                                placeholder="Explain why this article is being rejected (min 10 chars)..."
+                                                rows={2}
+                                                style={{
+                                                    width: '100%', padding: '0.5rem', borderRadius: '8px',
+                                                    border: '1px solid rgba(239,68,68,0.4)', background: 'var(--bg-primary)',
+                                                    color: 'var(--text-primary)', fontSize: '0.83rem', resize: 'vertical',
+                                                    fontFamily: 'inherit', outline: 'none'
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Action buttons */}
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        <button onClick={() => handleApproveArticle(article.id)} style={{
+                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                            padding: '0.4rem 1rem', borderRadius: '8px', border: 'none',
+                                            background: '#10b981', color: '#fff', fontWeight: 700,
+                                            cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit'
+                                        }}>
+                                            <CheckCircle size={13} /> Approve & Publish
+                                        </button>
+                                        {rejectingId === article.id ? (
+                                            <>
+                                                <button onClick={() => handleRejectArticle(article.id)} style={{
+                                                    display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                                    padding: '0.4rem 1rem', borderRadius: '8px', border: 'none',
+                                                    background: '#ef4444', color: '#fff', fontWeight: 700,
+                                                    cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit'
+                                                }}>
+                                                    Confirm Reject
+                                                </button>
+                                                <button onClick={() => { setRejectingId(null); setRejectReason(''); }} style={{
+                                                    padding: '0.4rem 0.75rem', borderRadius: '8px',
+                                                    border: '1px solid var(--border-color)', background: 'transparent',
+                                                    cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-muted)', fontFamily: 'inherit'
+                                                }}>
+                                                    Cancel
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <button onClick={() => { setRejectingId(article.id); setPreviewArticle(null); }} style={{
+                                                display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                                padding: '0.4rem 1rem', borderRadius: '8px',
+                                                border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)',
+                                                color: '#ef4444', fontWeight: 700, cursor: 'pointer',
+                                                fontSize: '0.82rem', fontFamily: 'inherit'
+                                            }}>
+                                                <X size={13} /> Reject
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 
             {/* ── Tab Content: Matrix ── */}
             {activeTab === 'matrix' && (
+
                 <>
                     {error && (
                         <div style={{

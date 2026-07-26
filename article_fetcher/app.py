@@ -113,7 +113,10 @@ _CATEGORY_KEYWORDS: dict = {
         "election", "president", "congress", "senate", "parliament", "government",
         "minister", "democrat", "republican", "legislation", "vote", "ballot",
         "political", "policy", "administration", "white house", "kremlin", "diplomacy",
-        "treaty", "sanction", "geopolitics", "prime minister", "governor",
+        "treaty", "sanction", "geopolitics", "prime minister", "governor", "court", 
+        "law", "scandal", "protest", "strike", "activist", "conflict", "clash", "security", 
+        "defense", "military", "army", "police", "investigation", "blast", "attack", 
+        "bomb", "killed", "casualty", "refugee", "crisis", "border", "summit", "nato", "un"
     ],
     "Technology": [
         "artificial intelligence", "machine learning", "software", "hardware",
@@ -126,13 +129,19 @@ _CATEGORY_KEYWORDS: dict = {
         "cricket", "football", "soccer", "basketball", "baseball", "tennis",
         "nba", "nfl", "premier league", "champions league", "world cup",
         "olympics", "grand slam", "formula one", "f1", "tournament", 
-        "championship", "wicket", "innings", "stadium", "athlete", "sports", "rugby", "hockey"
+        "championship", "wicket", "innings", "stadium", "athlete", "sports", "rugby", "hockey",
+        "sport", "player", "coach", "manager", "referee", "umpire", "league", "cup", "medal", 
+        "olympic", "race", "match", "game", "score", "versus", "vs", "boxing", "golf", "fencing", 
+        "wrestling", "swimming", "athletics", "nascar", "cycling"
     ],
     "Business": [
         "economy", "market", "stock", "trade", "investment", "inflation",
         "gdp", "recession", "bank", "finance", "revenue", "profit", "earnings",
         "company", "startup", "merger", "acquisition", "ceo", "ipo", "supply chain",
-        "tariff", "export", "import", "commodity", "oil price",
+        "tariff", "export", "import", "commodity", "oil price", "money", "billion", 
+        "million", "dollar", "funding", "backed", "valuation", "fintech", "jobs", 
+        "labor", "industrial", "retail", "consumer", "sales", "housing", "real estate", 
+        "rent", "lifestyle", "cost of living", "salary", "wage", "tax", "insurance"
     ],
     "Entertainment": [
         "movie", "film", "actor", "actress", "celebrity", "music", "album",
@@ -554,7 +563,7 @@ async def bg_fetch_loop():
                                     source_url=art_meta.get("url"),
                                     published=art_meta.get("publishedAt"),
                                     api_source=art_meta.get("api_source"),
-                                    category=cat_name,
+                                    category=categorize_article(art_meta.get("title"), cleaned),
                                     image_url=art_meta.get("image_url")
                                 )
                                 stubs_local.append(a)
@@ -575,12 +584,12 @@ async def bg_fetch_loop():
                                         source_url=url,
                                         published=art_meta.get("publishedAt"),
                                         api_source=art_meta.get("api_source"),
-                                        category=cat_name,
+                                        category=categorize_article(art_meta.get("title"), cleaned),
                                         image_url=art_meta.get("image_url")
                                     ))
                                 continue
                             result.source_url = url
-                            result.category = cat_name  # force correct category label
+                            result.category = categorize_article(result.title, result.text)
                             # Backup priority fallback:
                             if not result.image_url and art_meta.get("image_url"):
                                 result.image_url = art_meta.get("image_url")
