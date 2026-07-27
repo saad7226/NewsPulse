@@ -70,3 +70,12 @@ logs/
 # ── Reports & Evaluation Output ─────────────────────────────────────────────
 report/*.json
 report/*.csv
+
+# ── FYP Report & LaTeX Files ─────────────────────────────────────────────────
+FVP New Diagrams/
+FVP Old Diagrams/
+BS_FYP_Figs/
+air-kamra-bs.cls
+chapter*.tex
+fvpreport.tex
+sections/
