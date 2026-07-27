@@ -105,9 +105,16 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
 
     const handleDeleteArticle = async (id) => {
         if (!window.confirm("Are you sure you want to permanently delete this article?")) return;
-        const result = await secureGatewayCall('admin_delete_article', { article_id: id }, token);
-        if (result?.success) {
-            setAllArticles(prev => prev.filter(a => a.id !== id));
+        try {
+            const result = await secureGatewayCall('admin_delete_article', { article_id: id }, token);
+            if (result?.success) {
+                setAllArticles(prev => prev.filter(a => a.id !== id));
+            } else if (result?.error) {
+                alert("Server returned an error: " + result.error);
+            }
+        } catch (err) {
+            alert("Failed to delete article! The gateway returned an error (likely a 500 Internal Service Error). Check server logs.");
+            console.error(err);
         }
     };
 
