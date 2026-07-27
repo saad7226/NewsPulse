@@ -480,6 +480,25 @@ async def admin_reject(
     return {"success": True, "article": article_to_dict(article)}
 
 
+# ── Admin: Delete ──────────────────────────────────────────────────────────────
+@app.delete("/admin/{article_id}/delete")
+async def admin_delete(
+    article_id: int,
+    db: Session = Depends(get_db)
+):
+    article = db.query(models.WriterArticle).filter(
+        models.WriterArticle.id == article_id
+    ).first()
+    if not article:
+        raise HTTPException(404, "Article not found")
+    
+    db.delete(article)
+    db.commit()
+    logger.info("Article deleted by admin: id=%d", article_id)
+    return {"success": True, "message": "Article deleted permanently"}
+
+
+
 # ── Stats ──────────────────────────────────────────────────────────────────────
 @app.get("/stats")
 async def get_stats(db: Session = Depends(get_db)):

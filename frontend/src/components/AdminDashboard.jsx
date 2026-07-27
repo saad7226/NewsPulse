@@ -30,11 +30,12 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
     const [adminLoading, setAdminLoading] = useState(false);
 
     // Article Moderation State
-    const [pendingArticles, setPendingArticles] = useState([]);
+    const [allArticles, setAllArticles] = useState([]);
     const [articlesLoading, setArticlesLoading] = useState(false);
     const [rejectingId, setRejectingId] = useState(null);
     const [rejectReason, setRejectReason] = useState('');
     const [previewArticle, setPreviewArticle] = useState(null);
+    const [articleViewMode, setArticleViewMode] = useState('pending'); // 'pending' | 'all'
 
     const fetchMetrics = useCallback(async () => {
         setPulse(true);
@@ -83,19 +84,31 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
 
     useEffect(() => {
         if (activeTab === 'management') fetchAdmins();
-        if (activeTab === 'articles') fetchPendingArticles();
+        if (activeTab === 'articles') fetchAllArticles();
     }, [activeTab, fetchAdmins]);
 
-    const fetchPendingArticles = useCallback(async () => {
+    const fetchAllArticles = useCallback(async () => {
         setArticlesLoading(true);
-        const result = await secureGatewayCall('admin_get_pending_articles', {}, token);
-        if (Array.isArray(result)) setPendingArticles(result);
+        const result = await secureGatewayCall('admin_get_all_articles', {}, token);
+        if (Array.isArray(result)) {
+            setAllArticles(result);
+        }
         setArticlesLoading(false);
     }, [token]);
 
     const handleApproveArticle = async (id) => {
         const result = await secureGatewayCall('admin_approve_article', { article_id: id }, token);
-        if (result?.success) setPendingArticles(prev => prev.filter(a => a.id !== id));
+        if (result?.success) {
+            setAllArticles(prev => prev.map(a => a.id === id ? { ...a, status: 'published' } : a));
+        }
+    };
+
+    const handleDeleteArticle = async (id) => {
+        if (!window.confirm("Are you sure you want to permanently delete this article?")) return;
+        const result = await secureGatewayCall('admin_delete_article', { article_id: id }, token);
+        if (result?.success) {
+            setAllArticles(prev => prev.filter(a => a.id !== id));
+        }
     };
 
     const handleRejectArticle = async (id) => {
@@ -105,7 +118,7 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
         }
         const result = await secureGatewayCall('admin_reject_article', { article_id: id, reason: rejectReason }, token);
         if (result?.success) {
-            setPendingArticles(prev => prev.filter(a => a.id !== id));
+            setAllArticles(prev => prev.map(a => a.id === id ? { ...a, status: 'rejected' } : a));
             setRejectingId(null);
             setRejectReason('');
         }
@@ -206,9 +219,9 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
                         fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem',
                         display: 'flex', alignItems: 'center', gap: '0.5rem'
                     }}>
-                    <PenLine size={18} /> Article Review
-                    {pendingArticles.length > 0 && activeTab !== 'articles' && (
-                        <span style={{ background: '#f59e0b', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '999px', marginLeft: '0.25rem' }}>{pendingArticles.length}</span>
+                    <PenLine size={18} /> Articles & Moderation
+                    {allArticles.filter(a => a.status === 'submitted').length > 0 && activeTab !== 'articles' && (
+                        <span style={{ background: '#f59e0b', color: '#fff', fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '999px', marginLeft: '0.25rem' }}>{allArticles.filter(a => a.status === 'submitted').length}</span>
                     )}
                 </button>
                 {isSuperAdmin && (
@@ -232,10 +245,28 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
             {activeTab === 'articles' && (
                 <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                        <h2 style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)', fontSize: '1.1rem' }}>
-                            📝 Articles Awaiting Review ({pendingArticles.length})
+                        <h2 style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            📝 Article Moderation
+                            <div style={{ display: 'flex', background: '#F1F5F9', borderRadius: '8px', padding: '0.2rem' }}>
+                                <button onClick={() => setArticleViewMode('pending')} style={{
+                                    border: 'none', background: articleViewMode === 'pending' ? '#fff' : 'transparent',
+                                    boxShadow: articleViewMode === 'pending' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    borderRadius: '6px', padding: '0.3rem 0.8rem', fontSize: '0.8rem', fontWeight: 600,
+                                    color: articleViewMode === 'pending' ? '#f59e0b' : '#64748B', cursor: 'pointer'
+                                }}>
+                                    Pending ({allArticles.filter(a => a.status === 'submitted').length})
+                                </button>
+                                <button onClick={() => setArticleViewMode('all')} style={{
+                                    border: 'none', background: articleViewMode === 'all' ? '#fff' : 'transparent',
+                                    boxShadow: articleViewMode === 'all' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    borderRadius: '6px', padding: '0.3rem 0.8rem', fontSize: '0.8rem', fontWeight: 600,
+                                    color: articleViewMode === 'all' ? '#0f172a' : '#64748B', cursor: 'pointer'
+                                }}>
+                                    All Articles ({allArticles.length})
+                                </button>
+                            </div>
                         </h2>
-                        <button onClick={fetchPendingArticles} style={{
+                        <button onClick={fetchAllArticles} style={{
                             display: 'flex', alignItems: 'center', gap: '0.4rem',
                             padding: '0.4rem 0.8rem', borderRadius: '8px',
                             border: '1px solid var(--border-color)', background: 'transparent',
@@ -246,15 +277,15 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
                     </div>
 
                     {articlesLoading ? (
-                        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading pending articles...</div>
-                    ) : pendingArticles.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>Loading articles...</div>
+                    ) : allArticles.filter(a => articleViewMode === 'all' ? true : a.status === 'submitted').length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                             <CheckCircle size={40} style={{ color: '#10b981', marginBottom: '1rem' }} />
-                            <p style={{ fontWeight: 600 }}>All clear! No articles waiting for review.</p>
+                            <p style={{ fontWeight: 600 }}>All clear! No articles found in this view.</p>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {pendingArticles.map(article => (
+                            {allArticles.filter(a => articleViewMode === 'all' ? true : a.status === 'submitted').map(article => (
                                 <div key={article.id} style={{
                                     padding: '1.25rem', borderRadius: '14px',
                                     border: '1px solid rgba(245,158,11,0.3)',
@@ -263,9 +294,10 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
-                                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', padding: '0.15rem 0.5rem', borderRadius: '10px', border: '1px solid rgba(245,158,11,0.25)' }}>
-                                                    ⏳ Pending Review
-                                                </span>
+                                                {article.status === 'submitted' && <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.12)', padding: '0.15rem 0.5rem', borderRadius: '10px', border: '1px solid rgba(245,158,11,0.25)' }}>⏳ Pending Review</span>}
+                                                {article.status === 'published' && <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.12)', padding: '0.15rem 0.5rem', borderRadius: '10px', border: '1px solid rgba(16,185,129,0.25)' }}>✅ Published</span>}
+                                                {article.status === 'rejected' && <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ef4444', background: 'rgba(239,68,68,0.12)', padding: '0.15rem 0.5rem', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.25)' }}>❌ Rejected</span>}
+                                                {article.status === 'draft' && <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', background: 'rgba(100,116,139,0.12)', padding: '0.15rem 0.5rem', borderRadius: '10px', border: '1px solid rgba(100,116,139,0.25)' }}>Draft</span>}
                                                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: 'var(--bg-primary)', padding: '0.15rem 0.5rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                                                     {article.category}
                                                 </span>
@@ -324,43 +356,54 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
 
                                     {/* Action buttons */}
                                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                        <button onClick={() => handleApproveArticle(article.id)} style={{
-                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                            padding: '0.4rem 1rem', borderRadius: '8px', border: 'none',
-                                            background: '#10b981', color: '#fff', fontWeight: 700,
-                                            cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit'
-                                        }}>
-                                            <CheckCircle size={13} /> Approve & Publish
-                                        </button>
-                                        {rejectingId === article.id ? (
+                                        {article.status === 'submitted' && (
                                             <>
-                                                <button onClick={() => handleRejectArticle(article.id)} style={{
+                                                <button onClick={() => handleApproveArticle(article.id)} style={{
                                                     display: 'flex', alignItems: 'center', gap: '0.4rem',
                                                     padding: '0.4rem 1rem', borderRadius: '8px', border: 'none',
-                                                    background: '#ef4444', color: '#fff', fontWeight: 700,
+                                                    background: '#10b981', color: '#fff', fontWeight: 700,
                                                     cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit'
                                                 }}>
-                                                    Confirm Reject
+                                                    <CheckCircle size={13} /> Approve & Publish
                                                 </button>
-                                                <button onClick={() => { setRejectingId(null); setRejectReason(''); }} style={{
-                                                    padding: '0.4rem 0.75rem', borderRadius: '8px',
-                                                    border: '1px solid var(--border-color)', background: 'transparent',
-                                                    cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-muted)', fontFamily: 'inherit'
-                                                }}>
-                                                    Cancel
-                                                </button>
+                                                {rejectingId === article.id ? (
+                                                    <>
+                                                        <button onClick={() => handleRejectArticle(article.id)} style={{
+                                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                                            padding: '0.4rem 1rem', borderRadius: '8px', border: 'none',
+                                                            background: '#ef4444', color: '#fff', fontWeight: 700,
+                                                            cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit'
+                                                        }}>
+                                                            Confirm Reject
+                                                        </button>
+                                                        <button onClick={() => { setRejectingId(null); setRejectReason(''); }} style={{
+                                                            padding: '0.4rem 0.75rem', borderRadius: '8px',
+                                                            border: '1px solid var(--border-color)', background: 'transparent',
+                                                            cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-muted)', fontFamily: 'inherit'
+                                                        }}>
+                                                            Cancel
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <button onClick={() => setRejectingId(article.id)} style={{
+                                                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                                        padding: '0.4rem 1rem', borderRadius: '8px', border: 'none',
+                                                        background: '#ef4444', color: '#fff', fontWeight: 700,
+                                                        cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit'
+                                                    }}>
+                                                        <X size={13} /> Reject
+                                                    </button>
+                                                )}
                                             </>
-                                        ) : (
-                                            <button onClick={() => { setRejectingId(article.id); setPreviewArticle(null); }} style={{
-                                                display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                                padding: '0.4rem 1rem', borderRadius: '8px',
-                                                border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)',
-                                                color: '#ef4444', fontWeight: 700, cursor: 'pointer',
-                                                fontSize: '0.82rem', fontFamily: 'inherit'
-                                            }}>
-                                                <X size={13} /> Reject
-                                            </button>
                                         )}
+                                        <button onClick={() => handleDeleteArticle(article.id)} style={{
+                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                            padding: '0.4rem 1rem', borderRadius: '8px', border: '1px solid rgba(239,68,68,0.4)',
+                                            background: 'transparent', color: '#ef4444', fontWeight: 700,
+                                            cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit', marginLeft: 'auto'
+                                        }}>
+                                            <Trash2 size={13} /> Delete
+                                        </button>
                                     </div>
                                 </div>
                             ))}
