@@ -113,7 +113,18 @@ export default function AdminDashboard({ token, isSuperAdmin }) {
                 alert("Server returned an error: " + result.error);
             }
         } catch (err) {
-            alert("Failed to delete article! The gateway returned an error (likely a 500 Internal Service Error). Check server logs.");
+            let errorMsg = err.message;
+            if (err.response?.data?.payload) {
+                try {
+                    // Try to decrypt the payload to get the actual microservice error
+                    const { decryptPayload } = await import('../utils/crypto.js');
+                    const decrypted = decryptPayload(err.response.data.payload);
+                    if (decrypted?.error) errorMsg = decrypted.error;
+                } catch (e) {
+                    console.error("Failed to decrypt error payload", e);
+                }
+            }
+            alert("Failed to delete article!\n\n" + errorMsg);
             console.error(err);
         }
     };

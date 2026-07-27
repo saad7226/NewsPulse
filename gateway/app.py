@@ -408,6 +408,16 @@ async def secure_process(request: Request):
                 status_code=503, 
                 content={"payload": encrypt_response({"error": f"Service connection error: {str(e)}."})}
             )
+        except httpx.HTTPStatusError as e:
+            err_text = e.response.text
+            try:
+                err_text = e.response.json()
+            except:
+                pass
+            return JSONResponse(
+                status_code=e.response.status_code, 
+                content={"payload": encrypt_response({"error": f"Microservice error {e.response.status_code}: {err_text}"})}
+            )
         except Exception as e:
             import traceback
             traceback.print_exc()
