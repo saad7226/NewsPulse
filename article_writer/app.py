@@ -481,6 +481,7 @@ async def admin_reject(
 
 
 # ── Admin: Delete ──────────────────────────────────────────────────────────────
+@app.post("/admin/{article_id}/delete")
 @app.delete("/admin/{article_id}/delete")
 async def admin_delete(
     article_id: int,

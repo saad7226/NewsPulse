@@ -389,7 +389,7 @@ async def secure_process(request: Request):
                 if not user or not user.get("is_admin"):
                     return {"payload": encrypt_response({"error": "Admin privileges required"})}
                 article_id = params.get("article_id")
-                resp = await client.delete(
+                resp = await client.post(
                     f"http://article_writer:8000/admin/{article_id}/delete",
                     timeout=15.0
                 )
